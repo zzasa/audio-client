@@ -13,12 +13,10 @@
    npm install https://github.com/zzasa/audio-client.git
    ```
 
-2. 在项目代码中使用，如下示例：
+2. 在项目代码中使用，参考如下示例：
 
-    <https://github.com/zzasa/audio-client/blob/master/dist/index.html>
-
-   ```js
-    import { AudioClient } from '/index.js';
+   ```ts
+    import { AudioClient } from "audio-client";
 
     // wsUrl为音频服务IP，请填写实际的IP和端口，如：ws://192.168.100.10:3000/
     const client = new AudioClient({ wsUrl: 'ws://ai-server:3000/' });
@@ -29,6 +27,7 @@
         if (text) {
             clearTimeout(times);
             times = setTimeout(() => {
+                // 停止客户端
                 client.stop();
                 resultEle.innerHTML = '';
                 recognizeBtn.className = '';
