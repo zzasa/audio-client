@@ -332,8 +332,37 @@ export class AudioClient {
                 type: offer.type,
                 sdp: offer.sdp
             }
+            // newOffer.sdp = newOffer.sdp.replace('UDP/TLS/RTP/SAVPF 111 63 9 0 8 13 110 126', 'UDP/TLS/RTP/SAVPF 0 8 111 63 9 13 110 126');
             // m=audio 50869 UDP/TLS/RTP/SAVPF 111 63 9 0 8 13 110 126
-            newOffer.sdp = newOffer.sdp.replace('UDP/TLS/RTP/SAVPF 111 63 9 0 8 13 110 126', 'UDP/TLS/RTP/SAVPF 0 8 111 63 9 13 110 126');
+            const to_replaced = newOffer.sdp.match(/m=audio\s+\d+\s+\w+(\/\w+)*(\s+\d+)+/g);
+            if (to_replaced && to_replaced.length > 0) {
+                for (let i = 0; i < to_replaced.length; i++) {
+                    const s = to_replaced[i];
+                    let arr = s.split('');
+                    let numIndex = -1;
+                    for (let j = arr.length - 1; j >= 0; j--) {
+                        if (arr[j] == ' ') {
+                            numIndex++;
+                            continue;
+                        }
+                        if (isNaN(parseInt(arr[j]))) {
+                            break;
+                        } else {
+                            numIndex++;
+                        }
+                    }
+                    // '0 8 111 63 9 13 110 126'
+                    const numStr = s.slice(-numIndex).trim();
+                    const numArr = numStr.split(' ');
+                    const findedIndex = numArr.findIndex(val => val == '0');
+                    const firstNum = numArr[0];
+                    numArr[0] = numArr[findedIndex];
+                    numArr[findedIndex] = firstNum;
+                    const replacedStr = s.replace(numStr, numArr.join(' '));
+                    newOffer.sdp = newOffer.sdp.replace(s, replacedStr);
+                }
+            }
+
             console.info("本地SDP", newOffer.sdp);
             pc.setLocalDescription(newOffer);
             if (ws) {
