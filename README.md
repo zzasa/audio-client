@@ -19,7 +19,9 @@
     import { AudioClient } from "audio-client";
 
     // wsUrl为音频服务IP，请填写实际的IP和端口，如：ws://192.168.100.10:3000/
-    const client = new AudioClient({ wsUrl: 'ws://ai-server:3000/' });
+    // audioProcessorUrl：音频处理js地址，格式为相对路径或绝对路径，要保证能访问到，
+    // 如：http://localhost/AudioProcessor.js、./AudioProcessor.js、/AudioProcessor.js
+    const client = new AudioClient({ wsUrl: 'ws://ai-server:3000', audioProcessor: './AudioProcessor.js' });
     // 收到文本消息时回调
     client.ontext = text => {
         console.log('收到消息：', text);
@@ -57,7 +59,7 @@
         recognizeBtn.className = 'recognizeing';
         recognizeBtn.innerHTML = '正在识别';
         recognizeBtn.disabled = true;
-    }
+    };
 
     // 发送TTS消息
     sendBtn['onclick'] = function () {
@@ -67,7 +69,7 @@
         const text = prompt("请输入文本：");
         // 调用发送TTS
         client.send(text);
-    }
+    };
    ```
 
 ### 一般JS项目

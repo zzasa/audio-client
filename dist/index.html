@@ -55,10 +55,11 @@
         </div>
         <div class="form-item">
             <button id="recognize">开始识别</button>&nbsp;&nbsp;
+            <button id="stop">停止识别</button>&nbsp;&nbsp;
             <button id="send">发送消息(TTS)</button>
         </div>
         <!-- <div>
-            <audio src="/zhibei_emo.wav" id="audio-test" loop="false" controls="controls"></audio>
+            <audio src="./zhibei_emo.wav" id="audio-test" loop="false" controls="controls"></audio>
         </div> -->
         <div class="form-item" id="result">
 
@@ -66,22 +67,26 @@
     </div>
 
     <script type="module">
-        import { AudioClient } from '/index.js';
+        import { AudioClient } from './index.js';
 
         const recognizeBtn = document.getElementById('recognize');
         const sendBtn = document.getElementById('send');
+        const stopBtn = document.getElementById('stop');
         // 发音人
         const voice = document.getElementById('voice');
 
         const resultEle = document.getElementById('result');
         let times = undefined;
 
-        const client = new AudioClient({ wsUrl: 'ws://ai-server:3000/' });
+        // audioProcessorUrl：音频处理js地址，格式为相对路径或绝对路径，要保证能访问到，
+        // 如：http://localhost/AudioProcessor.js、./AudioProcessor.js、/AudioProcessor.js
+        const client = new AudioClient({ wsUrl: 'ws://ai-server:3000', audioProcessorUrl: './AudioProcessor.js' });
         client.ontext = text => {
             if (resultEle) {
                 resultEle.innerHTML = resultEle.innerText + text;
             }
-            console.log('收到消息：', text);
+            //console.log('收到消息：', text);
+
             // 5秒钟内没有说话，就自动关闭
             if (text) {
                 clearTimeout(times);
@@ -93,9 +98,10 @@
                     recognizeBtn.disabled = false;
                 }, 5000);
             };
-        }
+        };
+
         client.onaudio = audioData => {
-            console.info('收到音频数据：', audioData);
+            //console.info('收到音频数据：', audioData);
             const audioContext = new AudioContext();
             const audioSource = audioContext.createBufferSource();
             audioContext.decodeAudioData(audioData, (buffer) => {
@@ -104,14 +110,22 @@
                 // 播放音频数据
                 audioSource.start();
             });
-        }
+        };
 
         recognizeBtn['onclick'] = function () {
             client.start();
             recognizeBtn.className = 'recognizeing';
             recognizeBtn.innerHTML = '正在识别';
             recognizeBtn.disabled = true;
-        }
+        };
+
+        stopBtn['onclick'] = function () {
+            client.stop();
+            resultEle.innerHTML = '';
+            recognizeBtn.className = '';
+            recognizeBtn.innerHTML = '开始识别';
+            recognizeBtn.disabled = false;
+        };
 
         sendBtn['onclick'] = function () {
             // 设置发音人
@@ -119,7 +133,7 @@
 
             const text = prompt("请输入文本：");
             client.send(text);
-        }
+        };
     </script>
 </body>
 

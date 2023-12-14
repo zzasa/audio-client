@@ -1,6 +1,9 @@
-export interface AudioRTCConfig extends RTCConfiguration {
+export interface AudioConfig {
     /**websocket接口地址 */
     wsUrl: string
+
+    /**音频处理url，默认：./AudioProcessor.js */
+    audioProcessorUrl?: string
 
     /**
      * 发音人，用于TTS功能
@@ -8,18 +11,10 @@ export interface AudioRTCConfig extends RTCConfiguration {
      * 支持的发音人：zhitian_emo，zhiyan_emo，zhizhe_emo，zhibei_emo
      */
     voice?: string
-
-    /**SDP格式(不用设置)，默认：unified-plan */
-    sdpSemantics?: string
 }
 
 /**消息类型 */
 export enum MessageType {
-    Offer = "offer",
-    Pranswer = "pranswer",
-    Answer = "answer",
-    Rollback = "rollback",
-    Candidate = "candidate",
     /**tts请求 */
     TTS = "tts",
     /**语音识别结果 */
@@ -52,9 +47,9 @@ export class ClientMessageBuilder {
 }
 
 export class AudioClient {
-    private pc?: RTCPeerConnection
-
     private websocket?: WebSocket
+    private audioContext?: AudioContext
+    private stream?: MediaStream
 
     /**
      * 收到音频数据时回调函数，如TTS返回的音频数据、大模型结果返回的音频等
@@ -66,20 +61,9 @@ export class AudioClient {
      */
     ontext?: (text: string) => void
 
-    constructor(private config: AudioRTCConfig) {
-        if (!config.sdpSemantics) {
-            config.sdpSemantics = 'unified-plan';
-        }
-    }
+    constructor(private config: AudioConfig) { }
 
     private init(): Promise<boolean> {
-        let pc = this.pc;
-
-        if (!pc || pc.iceConnectionState == "closed") {
-            pc = this.createPeerConnection();
-        }
-        this.pc = pc;
-
         let ws = this.websocket;
         if (!ws || ws.readyState == ws.CLOSED) {
             ws = new WebSocket(this.config.wsUrl);
@@ -124,11 +108,6 @@ export class AudioClient {
                                 if (ontext) {
                                     ontext(msg.data);
                                 }
-                            } else if (msg.type == MessageType.Answer) {
-                                console.log('远端SDP', msg.data.sdp);
-                                this.pc?.setRemoteDescription(msg.data);
-                            } else if (msg.type == MessageType.Candidate) {
-                                this.pc?.addIceCandidate(msg.data);
                             }
                         }
                     }
@@ -152,62 +131,82 @@ export class AudioClient {
      * 
      * 具体解决方案参见：https://juejin.cn/post/7241399184595058744
      */
-    start() {
+    async start() {
+        if (!this.audioContext) {
+            this.audioContext = new AudioContext();
+        }
         this.init().then((success: boolean) => {
             if (success) {
-                this.start_stream();
+                navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+                    this.stream = stream;
+                    const tracks = stream.getAudioTracks();
+                    const track = tracks[0];
+                    const settings = track.getSettings();
+                    console.info(`音频轨道0：采样率：${settings.sampleRate}  通道数：${settings.channelCount}  采样大小：${settings.sampleSize}位`);
+
+                    const cap = track.getCapabilities();
+                    console.info('当前音频设备能力集：', cap);
+
+                    this.start_stream(stream);
+                }, err => {
+                    alert('获取用户麦克风设备失败：' + err);
+                });
+
+                // const audioEle = document.getElementById('audio-test') as HTMLAudioElement;
+                // audioEle.loop = false;
+                // const stream = (audioEle as any).captureStream() as MediaStream;
+                // this.stream = stream;
+                // audioEle.currentTime = 0;
+                // audioEle.play();
+                // this.start_stream(stream);
             }
         }, err => {
             console.log('连接音频服务失败：', err);
         });
     }
 
-    private start_stream() {
-        navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-            const tracks = stream.getAudioTracks();
-            const track = tracks[0];
-            const settings = track.getSettings();
-            console.info(`音频轨道0：采样率：${settings.sampleRate}  通道数：${settings.channelCount}  采样大小：${settings.sampleSize}位`);
-
-            const cap = track.getCapabilities();
-            console.info('当前音频设备能力集：', cap);
-
-            this.pc?.addTrack(track, stream);
-            this.negotiate();
-        }, err => {
-            alert('获取用户麦克风设备失败：' + err);
-        });
-
-        // const audioEle = document.getElementById('audio-test') as HTMLAudioElement;
-        // audioEle.loop = false;
-        // const stream = (audioEle as any).captureStream() as MediaStream;
-        // audioEle.play();
-        // const tracks = stream.getAudioTracks();
-        // this.pc?.addTrack(tracks[0], stream);
-        // this.negotiate();
+    private async start_stream(stream: MediaStream) {
+        const context = this.audioContext;
+        if (!context) {
+            return;
+        }
+        const audioSource = context.createMediaStreamSource(stream);
+        let url = this.config.audioProcessorUrl || './AudioProcessor.js';
+        await context.audioWorklet.addModule(url);
+        const node = new AudioWorkletNode(context, "AudioProcessor");
+        const ws = this.websocket;
+        node.port.onmessage = event => {
+            const data = event.data;
+            if (ws && ws.readyState == 1) {
+                //console.log('发送音频数据：', data);
+                ws.send(data);
+            }
+        }
+        audioSource.connect(node);
+        node.connect(context.destination);
     }
 
     /**
-     * 关闭客户端，包括与音频服务的连接
+     * 停止语音识别
      */
     stop() {
-        const pc = this.pc;
-        if (pc) {
-            if (typeof pc.getTransceivers) {
-                pc.getTransceivers().forEach(transceiver => {
-                    if (transceiver.stop) {
-                        transceiver.stop();
-                    }
-                });
-            }
-            pc.getSenders().forEach(sender => {
-                sender.track?.stop();
-            });
+        const context = this.audioContext;
+        if (context && context.state != "closed") {
+            context.close();
+        }
+        this.audioContext = undefined;
 
-            setTimeout(() => {
-                pc.close();
-                this.pc = undefined;
-            }, 500);
+        if (this.stream) {
+            for (const trace of this.stream.getTracks()) {
+                if (trace.readyState == 'live') {
+                    trace.stop();
+                }
+            }
+            this.stream = undefined;
+        }
+        const ws = this.websocket;
+        if (ws && ws.readyState == 1) {
+            ws.send(JSON.stringify(ClientMessageBuilder.build(MessageType.STT, "stop")));
         }
     }
 
@@ -248,126 +247,5 @@ export class AudioClient {
      */
     setVoice(voice: string) {
         this.config.voice = voice;
-    }
-
-    private createPeerConnection() {
-        const pc = new RTCPeerConnection(this.config);
-        pc.addEventListener('icegatheringstatechange', () => {
-            console.info('icegatheringstatechange', pc.iceGatheringState);
-        }, false);
-
-        pc.addEventListener('iceconnectionstatechange', () => {
-            console.info('iceconnectionstatechange', pc.iceConnectionState);
-        }, false);
-
-        pc.addEventListener('signalingstatechange', () => {
-            console.info('signalingstatechange', pc.signalingState);
-        }, false);
-
-        pc.addEventListener('track', (evt) => {
-            console.info('track evnt', evt);
-            if (evt.track.kind == 'audio') {
-                // TODO 处理服务端返回的音频
-                // const [remoteStream] = evt.streams;
-                // const remoteAudio = document.querySelector('#remoteAudio') as HTMLAudioElement;
-                // remoteAudio.srcObject = remoteStream;
-
-                // const context = new AudioContext();
-                //const peer = context.createMediaStreamDestination();
-                // const stream = context.createMediaStreamSource(remoteStream);
-                // stream.connect(context.destination);
-
-                // const audioStream = evt.streams[0]; //MediaStream
-                // if (config.onaudio) {
-                //     config.onaudio(audioStream);
-                // } else {
-                //     console.info('收到服务端音频');
-                // }
-            }
-        });
-
-        return pc;
-    }
-
-    /**
-     * rtc协商过程
-     */
-    // @ts-ignore
-    private negotiate() {
-        const pc = this.pc;
-        if (!pc) {
-            console.error('RTCPeerConnection实例pc未定义');
-            return;
-        }
-        const config = this.config;
-        if (!config) {
-            console.error('config未定义');
-            return;
-        }
-        const ws = this.websocket;
-        return pc.createOffer({ iceRestart: true }).then(offer => {
-            return pc.setLocalDescription(offer);
-        }).then(() => {
-            // wait for ICE gathering to complete
-            return new Promise<void>(resolve => {
-                if (pc.iceGatheringState === 'complete') {
-                    resolve();
-                } else {
-                    const checkState = () => {
-                        if (pc.iceGatheringState === 'complete') {
-                            pc.removeEventListener('icegatheringstatechange', checkState);
-                            resolve();
-                        }
-                    }
-                    pc.addEventListener('icegatheringstatechange', checkState);
-                }
-            });
-        }).then(() => {
-            const offer = pc.localDescription;
-            if (!offer) {
-                console.error('初始化本地offer失败');
-                return;
-            }
-            const newOffer = {
-                type: offer.type,
-                sdp: offer.sdp
-            }
-            // newOffer.sdp = newOffer.sdp.replace('UDP/TLS/RTP/SAVPF 111 63 9 0 8 13 110 126', 'UDP/TLS/RTP/SAVPF 0 8 111 63 9 13 110 126');
-            // m=audio 50869 UDP/TLS/RTP/SAVPF 111 63 9 0 8 13 110 126
-            const to_replaced = newOffer.sdp.match(/m=audio\s+\d+\s+\w+(\/\w+)*(\s+\d+)+/g);
-            if (to_replaced && to_replaced.length > 0) {
-                for (let i = 0; i < to_replaced.length; i++) {
-                    const s = to_replaced[i];
-                    let arr = s.split('');
-                    let numIndex = -1;
-                    for (let j = arr.length - 1; j >= 0; j--) {
-                        if (arr[j] == ' ') {
-                            numIndex++;
-                            continue;
-                        }
-                        if (isNaN(parseInt(arr[j]))) {
-                            break;
-                        } else {
-                            numIndex++;
-                        }
-                    }
-                    // '0 8 111 63 9 13 110 126'
-                    const numStr = s.slice(-numIndex).trim();
-                    const numArr = numStr.split(' ');
-                    const findedIndex = numArr.findIndex(val => val == '0');
-                    const firstNum = numArr[0];
-                    numArr[0] = numArr[findedIndex];
-                    numArr[findedIndex] = firstNum;
-                    const replacedStr = s.replace(numStr, numArr.join(' '));
-                    newOffer.sdp = newOffer.sdp.replace(s, replacedStr);
-                }
-            }
-
-            console.info("本地SDP", newOffer.sdp);
-            pc.setLocalDescription(newOffer);
-            if (ws) {
-                ws.send(JSON.stringify(ClientMessageBuilder.build(MessageType.Offer, newOffer)));
-            }
-        });
     }
 }

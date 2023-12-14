@@ -1,22 +1,17 @@
-export interface AudioRTCConfig extends RTCConfiguration {
+export interface AudioConfig {
     /**websocket接口地址 */
     wsUrl: string;
+    /**音频处理url，默认：./AudioProcessor.js */
+    audioProcessorUrl?: string;
     /**
      * 发音人，用于TTS功能
      *
      * 支持的发音人：zhitian_emo，zhiyan_emo，zhizhe_emo，zhibei_emo
      */
     voice?: string;
-    /**SDP格式(不用设置)，默认：unified-plan */
-    sdpSemantics?: string;
 }
 /**消息类型 */
 export declare enum MessageType {
-    Offer = "offer",
-    Pranswer = "pranswer",
-    Answer = "answer",
-    Rollback = "rollback",
-    Candidate = "candidate",
     /**tts请求 */
     TTS = "tts",
     /**语音识别结果 */
@@ -34,8 +29,9 @@ export declare class ClientMessageBuilder {
 }
 export declare class AudioClient {
     private config;
-    private pc?;
     private websocket?;
+    private audioContext?;
+    private stream?;
     /**
      * 收到音频数据时回调函数，如TTS返回的音频数据、大模型结果返回的音频等
      */
@@ -44,7 +40,7 @@ export declare class AudioClient {
      * 收到文本数据时回调函数，如语音识别结果
      */
     ontext?: (text: string) => void;
-    constructor(config: AudioRTCConfig);
+    constructor(config: AudioConfig);
     private init;
     /**
      * 启动语音识别，即语音转文本
@@ -56,10 +52,10 @@ export declare class AudioClient {
      *
      * 具体解决方案参见：https://juejin.cn/post/7241399184595058744
      */
-    start(): void;
+    start(): Promise<void>;
     private start_stream;
     /**
-     * 关闭客户端，包括与音频服务的连接
+     * 停止语音识别
      */
     stop(): void;
     /**
@@ -72,9 +68,4 @@ export declare class AudioClient {
      * 设置发音人
      */
     setVoice(voice: string): void;
-    private createPeerConnection;
-    /**
-     * rtc协商过程
-     */
-    private negotiate;
 }
