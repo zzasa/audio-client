@@ -102,26 +102,33 @@ export class AudioClient {
      * 2. 网站使用https，且有合法域名
      *
      * 具体解决方案参见：https://juejin.cn/post/7241399184595058744
+     *
+     * @param customMediaStream 自定义语音输入流(可选)，若不传，则使用内置语音采集
      */
-    start() {
+    start(customMediaStream) {
         return __awaiter(this, void 0, void 0, function* () {
             if (!this.audioContext) {
                 this.audioContext = new AudioContext();
             }
             this.init().then((success) => {
                 if (success) {
-                    navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-                        this.stream = stream;
-                        const tracks = stream.getAudioTracks();
-                        const track = tracks[0];
-                        const settings = track.getSettings();
-                        console.info(`音频轨道0：采样率：${settings.sampleRate}  通道数：${settings.channelCount}  采样大小：${settings.sampleSize}位`);
-                        const cap = track.getCapabilities();
-                        console.info('当前音频设备能力集：', cap);
-                        this.start_stream(stream);
-                    }, err => {
-                        alert('获取用户麦克风设备失败：' + err);
-                    });
+                    if (customMediaStream) {
+                        this.start_stream(customMediaStream);
+                    }
+                    else {
+                        navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+                            this.stream = stream;
+                            const tracks = stream.getAudioTracks();
+                            const track = tracks[0];
+                            const settings = track.getSettings();
+                            console.info(`音频轨道0：采样率：${settings.sampleRate}  通道数：${settings.channelCount}  采样大小：${settings.sampleSize}位`);
+                            const cap = track.getCapabilities();
+                            console.info('当前音频设备能力集：', cap);
+                            this.start_stream(stream);
+                        }, err => {
+                            alert('获取用户麦克风设备失败：' + err);
+                        });
+                    }
                     // const audioEle = document.getElementById('audio-test') as HTMLAudioElement;
                     // audioEle.loop = false;
                     // const stream = (audioEle as any).captureStream() as MediaStream;

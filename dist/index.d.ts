@@ -50,8 +50,10 @@ export declare class AudioClient {
      * 2. 网站使用https，且有合法域名
      *
      * 具体解决方案参见：https://juejin.cn/post/7241399184595058744
+     *
+     * @param customMediaStream 自定义语音输入流(可选)，若不传，则使用内置语音采集
      */
-    start(): Promise<void>;
+    start(customMediaStream?: MediaStream): Promise<void>;
     private base64_to_url;
     private start_stream;
     /**
