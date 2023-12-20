@@ -78,7 +78,7 @@
         const resultEle = document.getElementById('result');
         let times = undefined;
         
-        const client = new AudioClient({ wsUrl: 'wss://hyhuman.cn/audio' });
+        const client = new AudioClient({ wsUrl: 'ws://ai-server:3000' });
         client.ontext = text => {
             if (resultEle) {
                 resultEle.innerHTML = resultEle.innerText + text;
