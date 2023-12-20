@@ -1,8 +1,6 @@
 export interface AudioConfig {
     /**websocket接口地址 */
     wsUrl: string;
-    /**音频处理url，默认：./AudioProcessor.js */
-    audioProcessorUrl?: string;
     /**
      * 发音人，用于TTS功能
      *
@@ -32,6 +30,7 @@ export declare class AudioClient {
     private websocket?;
     private audioContext?;
     private stream?;
+    private audioProcessorURL?;
     /**
      * 收到音频数据时回调函数，如TTS返回的音频数据、大模型结果返回的音频等
      */
@@ -53,6 +52,7 @@ export declare class AudioClient {
      * 具体解决方案参见：https://juejin.cn/post/7241399184595058744
      */
     start(): Promise<void>;
+    private base64_to_url;
     private start_stream;
     /**
      * 停止语音识别

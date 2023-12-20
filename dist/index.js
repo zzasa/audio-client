@@ -7,6 +7,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+const audioProcessorBase64 = 'Y2xhc3MgQXVkaW9Qcm9jZXNzb3IgZXh0ZW5kcyBBdWRpb1dvcmtsZXRQcm9jZXNzb3Igew0KICAgIHByb2Nlc3MoaW5wdXRzLCBvdXRwdXRzKSB7DQogICAgICAgIGNvbnN0IGlucHV0Q2hhbm5lbHMgPSBpbnB1dHNbMF07DQogICAgICAgIGNvbnN0IGlucHV0U2FtcGxlcyA9IGlucHV0Q2hhbm5lbHNbMF07DQogICAgICAgIHRoaXMucG9ydC5wb3N0TWVzc2FnZSh0aGlzLnRyYW5zY29kZShpbnB1dFNhbXBsZXMpLmJ1ZmZlcik7DQogICAgICAgIHJldHVybiB0cnVlOw0KICAgIH0NCiAgICB0cmFuc2NvZGUoYXVkaW9EYXRhKSB7DQogICAgICAgIGxldCBvdXRwdXQgPSB0aGlzLnRvMTZrSHooYXVkaW9EYXRhKTsNCiAgICAgICAgb3V0cHV0ID0gdGhpcy50bzE2Qml0UENNKG91dHB1dCk7DQogICAgICAgIHJldHVybiBvdXRwdXQ7DQogICAgfQ0KICAgIHRvMTZrSHooYXVkaW9EYXRhKSB7DQogICAgICAgIHZhciBkYXRhID0gbmV3IEZsb2F0MzJBcnJheShhdWRpb0RhdGEpOw0KICAgICAgICB2YXIgZml0Q291bnQgPSBNYXRoLnJvdW5kKGRhdGEubGVuZ3RoICogKDE2MDAwIC8gc2FtcGxlUmF0ZSkpOw0KICAgICAgICB2YXIgbmV3RGF0YSA9IG5ldyBGbG9hdDMyQXJyYXkoZml0Q291bnQpOw0KICAgICAgICB2YXIgc3ByaW5nRmFjdG9yID0gKGRhdGEubGVuZ3RoIC0gMSkgLyAoZml0Q291bnQgLSAxKTsNCiAgICAgICAgbmV3RGF0YVswXSA9IGRhdGFbMF07DQogICAgICAgIGZvciAobGV0IGkgPSAxOyBpIDwgZml0Q291bnQgLSAxOyBpKyspIHsNCiAgICAgICAgICAgIHZhciB0bXAgPSBpICogc3ByaW5nRmFjdG9yOw0KICAgICAgICAgICAgdmFyIGJlZm9yZSA9IE1hdGguZmxvb3IodG1wKS50b0ZpeGVkKCk7DQogICAgICAgICAgICB2YXIgYWZ0ZXIgPSBNYXRoLmNlaWwodG1wKS50b0ZpeGVkKCk7DQogICAgICAgICAgICB2YXIgYXRQb2ludCA9IHRtcCAtIGJlZm9yZTsNCiAgICAgICAgICAgIG5ld0RhdGFbaV0gPSBkYXRhW2JlZm9yZV0gKyAoZGF0YVthZnRlcl0gLSBkYXRhW2JlZm9yZV0pICogYXRQb2ludDsNCiAgICAgICAgfQ0KICAgICAgICBuZXdEYXRhW2ZpdENvdW50IC0gMV0gPSBkYXRhW2RhdGEubGVuZ3RoIC0gMV07DQogICAgICAgIHJldHVybiBuZXdEYXRhOw0KICAgIH0NCg0KICAgIHRvMTZCaXRQQ00oaW5wdXQpIHsNCiAgICAgICAgdmFyIGRhdGFMZW5ndGggPSBpbnB1dC5sZW5ndGggKiAoMTYgLyA4KTsNCiAgICAgICAgdmFyIGRhdGFCdWZmZXIgPSBuZXcgQXJyYXlCdWZmZXIoZGF0YUxlbmd0aCk7DQogICAgICAgIHZhciBkYXRhVmlldyA9IG5ldyBEYXRhVmlldyhkYXRhQnVmZmVyKTsNCiAgICAgICAgdmFyIG9mZnNldCA9IDA7DQogICAgICAgIGZvciAodmFyIGkgPSAwOyBpIDwgaW5wdXQubGVuZ3RoOyBpKyssIG9mZnNldCArPSAyKSB7DQogICAgICAgICAgICB2YXIgcyA9IE1hdGgubWF4KC0xLCBNYXRoLm1pbigxLCBpbnB1dFtpXSkpOw0KICAgICAgICAgICAgZGF0YVZpZXcuc2V0SW50MTYob2Zmc2V0LCBzIDwgMCA/IHMgKiAweDgwMDAgOiBzICogMHg3ZmZmLCB0cnVlKTsNCiAgICAgICAgfQ0KICAgICAgICByZXR1cm4gZGF0YVZpZXc7DQogICAgfQ0KfQ0KDQpyZWdpc3RlclByb2Nlc3NvcigiQXVkaW9Qcm9jZXNzb3IiLCBBdWRpb1Byb2Nlc3Nvcik7';
 /**消息类型 */
 export var MessageType;
 (function (MessageType) {
@@ -134,6 +135,17 @@ export class AudioClient {
             });
         });
     }
+    base64_to_url(base64, contentType) {
+        const byteCharacters = atob(base64);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: contentType });
+        const blobUrl = URL.createObjectURL(blob);
+        return blobUrl;
+    }
     start_stream(stream) {
         return __awaiter(this, void 0, void 0, function* () {
             const context = this.audioContext;
@@ -141,8 +153,13 @@ export class AudioClient {
                 return;
             }
             const audioSource = context.createMediaStreamSource(stream);
-            let url = this.config.audioProcessorUrl || './AudioProcessor.js';
+            if (this.audioProcessorURL) {
+                URL.revokeObjectURL(this.audioProcessorURL);
+                this.audioProcessorURL = undefined;
+            }
+            let url = this.base64_to_url(audioProcessorBase64, 'text/javascript');
             yield context.audioWorklet.addModule(url);
+            this.audioProcessorURL = url;
             const node = new AudioWorkletNode(context, "AudioProcessor");
             const ws = this.websocket;
             node.port.onmessage = event => {
@@ -176,6 +193,10 @@ export class AudioClient {
         const ws = this.websocket;
         if (ws && ws.readyState == 1) {
             ws.send(JSON.stringify(ClientMessageBuilder.build(MessageType.STT, "stop")));
+        }
+        if (this.audioProcessorURL) {
+            URL.revokeObjectURL(this.audioProcessorURL);
+            this.audioProcessorURL = undefined;
         }
     }
     /**
@@ -217,3 +238,4 @@ export class AudioClient {
         this.config.voice = voice;
     }
 }
+

@@ -1,9 +1,8 @@
+const audioProcessorBase64 = '';
+
 export interface AudioConfig {
     /**websocket接口地址 */
     wsUrl: string
-
-    /**音频处理url，默认：./AudioProcessor.js */
-    audioProcessorUrl?: string
 
     /**
      * 发音人，用于TTS功能
@@ -50,6 +49,7 @@ export class AudioClient {
     private websocket?: WebSocket
     private audioContext?: AudioContext
     private stream?: MediaStream
+    private audioProcessorURL?: string
 
     /**
      * 收到音频数据时回调函数，如TTS返回的音频数据、大模型结果返回的音频等
@@ -165,14 +165,32 @@ export class AudioClient {
         });
     }
 
+    private base64_to_url(base64: string, contentType: string): string {
+        const byteCharacters = atob(base64);
+        const byteNumbers: number[] = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: contentType });
+        const blobUrl = URL.createObjectURL(blob);
+        return blobUrl;
+    }
+
     private async start_stream(stream: MediaStream) {
         const context = this.audioContext;
         if (!context) {
             return;
         }
         const audioSource = context.createMediaStreamSource(stream);
-        let url = this.config.audioProcessorUrl || './AudioProcessor.js';
+        if (this.audioProcessorURL) {
+            URL.revokeObjectURL(this.audioProcessorURL);
+            this.audioProcessorURL = undefined;
+        }
+        let url = this.base64_to_url(audioProcessorBase64, 'text/javascript');
         await context.audioWorklet.addModule(url);
+        this.audioProcessorURL = url;
+
         const node = new AudioWorkletNode(context, "AudioProcessor");
         const ws = this.websocket;
         node.port.onmessage = event => {
@@ -207,6 +225,11 @@ export class AudioClient {
         const ws = this.websocket;
         if (ws && ws.readyState == 1) {
             ws.send(JSON.stringify(ClientMessageBuilder.build(MessageType.STT, "stop")));
+        }
+
+        if (this.audioProcessorURL) {
+            URL.revokeObjectURL(this.audioProcessorURL);
+            this.audioProcessorURL = undefined;
         }
     }
 

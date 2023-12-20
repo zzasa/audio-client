@@ -77,10 +77,8 @@
 
         const resultEle = document.getElementById('result');
         let times = undefined;
-
-        // audioProcessorUrl：音频处理js地址，格式为相对路径或绝对路径，要保证能访问到，
-        // 如：http://localhost/AudioProcessor.js、./AudioProcessor.js、/AudioProcessor.js
-        const client = new AudioClient({ wsUrl: 'ws://ai-server:3000', audioProcessorUrl: './AudioProcessor.js' });
+        
+        const client = new AudioClient({ wsUrl: 'wss://hyhuman.cn/audio' });
         client.ontext = text => {
             if (resultEle) {
                 resultEle.innerHTML = resultEle.innerText + text;
