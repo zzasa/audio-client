@@ -42,6 +42,11 @@ export declare class AudioClient {
     constructor(config: AudioConfig);
     private init;
     /**
+     * 获取音频上下文
+     * @returns 内部音频上下文
+     */
+    getAudioContext(): AudioContext | undefined;
+    /**
      * 启动语音识别，即语音转文本
      *
      * 调用后，浏览器会自动请求获取麦克风，受浏览器安全限制，只有在以下情况才能获取麦克风设备：
