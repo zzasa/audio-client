@@ -1,5 +1,7 @@
 const audioProcessorBase64 = '';
 
+type VoiceType = 'zhitian_emo' | 'zhiyan_emo' | 'zhizhe_emo' | 'zhibei_emo'
+
 export interface AudioConfig {
     /**websocket接口地址 */
     wsUrl: string
@@ -9,7 +11,7 @@ export interface AudioConfig {
      * 
      * 支持的发音人：zhitian_emo，zhiyan_emo，zhizhe_emo，zhibei_emo
      */
-    voice?: string
+    voice?: VoiceType
 }
 
 /**消息类型 */
@@ -48,8 +50,12 @@ export class ClientMessageBuilder {
 export class AudioClient {
     private websocket?: WebSocket
     private audioContext?: AudioContext
+    private audioSource?: AudioBufferSourceNode
     private stream?: MediaStream
     private audioProcessorURL?: string
+    private toPlayAudio: ArrayBuffer[] = []
+    /**是否禁用语音播报 */
+    private disableVolume = false
 
     /**
      * 收到音频数据时回调函数，如TTS返回的音频数据、大模型结果返回的音频等
@@ -60,6 +66,11 @@ export class AudioClient {
      * 收到文本数据时回调函数，如语音识别结果
      */
     ontext?: (text: string) => void
+
+    /**
+     * 音频播放完成时回调
+     */
+    onPlayEnd?: () => void
 
     constructor(private config: AudioConfig) { }
 
@@ -283,7 +294,76 @@ export class AudioClient {
     /**
      * 设置发音人
      */
-    setVoice(voice: string) {
+    setVoice(voice: VoiceType) {
         this.config.voice = voice;
+    }
+
+    /**
+     * 设置是否禁用语音播报
+     * @param disableVolume 是否禁用语音播报 
+     */
+    setVolume(disableVolume: boolean) {
+        this.disableVolume = disableVolume;
+        if (disableVolume) {
+            this.stopAudio();
+        }
+    }
+
+    /**
+     * 播放音频数据
+     * @param audioData 音频数据
+     * @returns 
+     */
+    playAudio(audioData: ArrayBuffer) {
+        if (this.disableVolume) { // 已禁用语音播报
+            return;
+        }
+        const context = this.audioContext;
+        if (!context) {
+            console.error('获取音频上下文失败：client.getAudioContext()');
+            return;
+        }
+        this.toPlayAudio.push(audioData);
+
+        const playCall = () => {
+            if (this.toPlayAudio.length > 0) {
+                const buffer = this.toPlayAudio.shift();
+                if (buffer) {
+                    this.stopAudio();
+
+                    const audioSource = context.createBufferSource();
+                    this.audioSource = audioSource;
+
+                    audioSource.onended = () => {
+                        playCall();
+                    };
+                    context.decodeAudioData(buffer, (_buffer) => {
+                        audioSource.buffer = _buffer;
+                        audioSource.connect(context.destination);
+                        // 播放音频数据
+                        audioSource.start(0);
+                    })
+                }
+            } else {
+                if (this.onPlayEnd) {
+                    this.onPlayEnd()
+                }
+                this.audioSource = undefined;
+            }
+        }
+
+        if (!this.audioSource) {
+            playCall();
+        }
+    }
+
+    /**
+     * 停止播放音频
+     */
+    stopAudio() {
+        if (this.audioSource) {
+            this.audioSource.disconnect();
+            this.audioSource.stop();
+        }
     }
 }

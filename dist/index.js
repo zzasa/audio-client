@@ -36,6 +36,9 @@ export class ClientMessageBuilder {
 export class AudioClient {
     constructor(config) {
         this.config = config;
+        this.toPlayAudio = [];
+        /**是否禁用语音播报 */
+        this.disableVolume = false;
     }
     init() {
         let ws = this.websocket;
@@ -251,6 +254,69 @@ export class AudioClient {
      */
     setVoice(voice) {
         this.config.voice = voice;
+    }
+    /**
+     * 设置是否禁用语音播报
+     * @param disableVolume 是否禁用语音播报
+     */
+    setVolume(disableVolume) {
+        this.disableVolume = disableVolume;
+        if (disableVolume) {
+            this.stopAudio();
+        }
+    }
+    /**
+     * 播放音频数据
+     * @param audioData 音频数据
+     * @returns
+     */
+    playAudio(audioData) {
+        if (this.disableVolume) { // 已禁用语音播报
+            return;
+        }
+        const context = this.audioContext;
+        if (!context) {
+            console.error('获取音频上下文失败：client.getAudioContext()');
+            return;
+        }
+        this.toPlayAudio.push(audioData);
+        const playCall = () => {
+            if (this.toPlayAudio.length > 0) {
+                const buffer = this.toPlayAudio.shift();
+                if (buffer) {
+                    this.stopAudio();
+                    const audioSource = context.createBufferSource();
+                    this.audioSource = audioSource;
+                    audioSource.onended = () => {
+                        playCall();
+                    };
+                    context.decodeAudioData(buffer, (_buffer) => {
+                        audioSource.buffer = _buffer;
+                        audioSource.connect(context.destination);
+                        // 播放音频数据
+                        audioSource.start(0);
+                    });
+                }
+            }
+            else {
+                if (this.onPlayEnd) {
+                    this.onPlayEnd();
+                }
+                this.audioSource = undefined;
+            }
+        };
+        if (!this.audioSource) {
+            playCall();
+        }
+    }
+    /**
+     * 停止播放音频
+     */
+    stopAudio() {
+        if (this.audioSource) {
+            this.audioSource.disconnect();
+            this.audioSource.stop();
+        }
     }
 }
 

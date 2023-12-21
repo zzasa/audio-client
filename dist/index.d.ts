@@ -1,3 +1,4 @@
+type VoiceType = 'zhitian_emo' | 'zhiyan_emo' | 'zhizhe_emo' | 'zhibei_emo';
 export interface AudioConfig {
     /**websocket接口地址 */
     wsUrl: string;
@@ -6,7 +7,7 @@ export interface AudioConfig {
      *
      * 支持的发音人：zhitian_emo，zhiyan_emo，zhizhe_emo，zhibei_emo
      */
-    voice?: string;
+    voice?: VoiceType;
 }
 /**消息类型 */
 export declare enum MessageType {
@@ -29,8 +30,12 @@ export declare class AudioClient {
     private config;
     private websocket?;
     private audioContext?;
+    private audioSource?;
     private stream?;
     private audioProcessorURL?;
+    private toPlayAudio;
+    /**是否禁用语音播报 */
+    private disableVolume;
     /**
      * 收到音频数据时回调函数，如TTS返回的音频数据、大模型结果返回的音频等
      */
@@ -39,6 +44,10 @@ export declare class AudioClient {
      * 收到文本数据时回调函数，如语音识别结果
      */
     ontext?: (text: string) => void;
+    /**
+     * 音频播放完成时回调
+     */
+    onPlayEnd?: () => void;
     constructor(config: AudioConfig);
     private init;
     /**
@@ -74,5 +83,21 @@ export declare class AudioClient {
     /**
      * 设置发音人
      */
-    setVoice(voice: string): void;
+    setVoice(voice: VoiceType): void;
+    /**
+     * 设置是否禁用语音播报
+     * @param disableVolume 是否禁用语音播报
+     */
+    setVolume(disableVolume: boolean): void;
+    /**
+     * 播放音频数据
+     * @param audioData 音频数据
+     * @returns
+     */
+    playAudio(audioData: ArrayBuffer): void;
+    /**
+     * 停止播放音频
+     */
+    stopAudio(): void;
 }
+export {};
