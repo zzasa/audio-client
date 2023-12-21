@@ -253,32 +253,30 @@ export class AudioClient {
      * 发送文本消息，服务端会返回一段音频，请在onmessage回调中处理
      */
     send(text: string) {
-        if (!text.trim()) {
-            alert("请输入对话内容");
-            return;
-        }
-        if (!this.audioContext) {
-            this.audioContext = new AudioContext();
-        }
-        const ws = this.websocket;
-        if (ws && ws.readyState == 1) {
-            console.info('开始发送消息：', text);
-            ws.send(JSON.stringify(ClientMessageBuilder.build(MessageType.TTS, {
-                message: text,
-                voice: this.config.voice || ''
-            })));
-        } else {
-            this.init().then((success: boolean) => {
-                if (success && this.websocket) {
-                    console.info('开始发送消息：', text);
-                    this.websocket.send(JSON.stringify(ClientMessageBuilder.build(MessageType.TTS, {
-                        message: text,
-                        voice: this.config.voice || ''
-                    })));
-                }
-            }, err => {
-                console.log('连接音频服务失败：', err);
-            });
+        if (text.trim()) {
+            if (!this.audioContext) {
+                this.audioContext = new AudioContext();
+            }
+            const ws = this.websocket;
+            if (ws && ws.readyState == 1) {
+                console.info('开始发送消息：', text);
+                ws.send(JSON.stringify(ClientMessageBuilder.build(MessageType.TTS, {
+                    message: text,
+                    voice: this.config.voice || ''
+                })));
+            } else {
+                this.init().then((success: boolean) => {
+                    if (success && this.websocket) {
+                        console.info('开始发送消息：', text);
+                        this.websocket.send(JSON.stringify(ClientMessageBuilder.build(MessageType.TTS, {
+                            message: text,
+                            voice: this.config.voice || ''
+                        })));
+                    }
+                }, err => {
+                    console.log('连接音频服务失败：', err);
+                });
+            }
         }
     }
 
