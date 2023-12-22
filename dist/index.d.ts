@@ -69,7 +69,6 @@ export declare class AudioClient {
      */
     start(customMediaStream?: MediaStream): Promise<void>;
     private base64_to_url;
-    private base64_to_bytes;
     private start_stream;
     /**
      * 停止语音识别
