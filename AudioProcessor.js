@@ -1,42 +1,8 @@
-// wasm_audio.js
-
-const numAudioSamplesPerAnalysis = 1024;
 class AudioProcessor extends AudioWorkletProcessor {
-    constructor() {
-        super();
-
-        this.port.onmessage = (event) => {
-            const { type, data } = event.data;
-            if (type === "wasmBytes") {
-                console.log('wasm_bindgen', wasm_bindgen);
-                console.log('setInterval', typeof setInterval);
-                wasm_bindgen.initSync(data);
-
-                this.detector = wasm_bindgen.WasmPitchDetector.new(sampleRate, numAudioSamplesPerAnalysis);
-                this.samples = [];
-             }
-        };
-    }
     process(inputs, outputs) {
         const inputChannels = inputs[0];
         const inputSamples = inputChannels[0];
-        
-        for (const i of inputSamples) {
-            this.samples.push(i);
-        }
-
-        // 开始音高检测
-        if (this.samples.length >= numAudioSamplesPerAnalysis && this.detector) {
-            const audioData = this.samples.splice(0, numAudioSamplesPerAnalysis);
-            const result = this.detector.detect_pitch(audioData);
-            if (result !== 0) {
-                const buf = new Float32Array(numAudioSamplesPerAnalysis);
-                for (let i = 0; i < audioData.length; i++) {
-                    buf[i] = audioData[i];
-                }
-                this.port.postMessage({ type: 'audioData', data: this.transcode(new Float32Array(audioData)).buffer});
-            }
-        }
+        this.port.postMessage(this.transcode(inputSamples).buffer);
         return true;
     }
     transcode(audioData) {

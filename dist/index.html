@@ -58,9 +58,9 @@
             <button id="stop">停止识别</button>&nbsp;&nbsp;
             <button id="send">发送消息(TTS)</button>
         </div>
-        <div>
+        <!-- <div>
             <audio src="./zhibei_emo.wav" id="audio-test" loop="false" controls="controls"></audio>
-        </div>
+        </div> -->
         <div class="form-item" id="result">
 
         </div>
@@ -78,8 +78,7 @@
         const resultEle = document.getElementById('result');
         let times = undefined;
         
-        // ws://ai-server:3000
-        const client = new AudioClient({ wsUrl: 'wss://hyhuman.cn/audio' });
+        const client = new AudioClient({ wsUrl: 'ws://ai-server:3000' });
         client.ontext = text => {
             if (resultEle) {
                 resultEle.innerHTML = resultEle.innerText + text;
@@ -89,13 +88,13 @@
             // 5秒钟内没有说话，就自动关闭
             if (text) {
                 clearTimeout(times);
-                // times = setTimeout(() => {
-                //     client.stop();
-                //     resultEle.innerHTML = '';
-                //     recognizeBtn.className = '';
-                //     recognizeBtn.innerHTML = '开始识别';
-                //     recognizeBtn.disabled = false;
-                // }, 5000);
+                times = setTimeout(() => {
+                    client.stop();
+                    resultEle.innerHTML = '';
+                    recognizeBtn.className = '';
+                    recognizeBtn.innerHTML = '开始识别';
+                    recognizeBtn.disabled = false;
+                }, 5000);
             };
         };
 
@@ -112,15 +111,7 @@
         };
 
         recognizeBtn['onclick'] = function () {
-            const audioEle = document.getElementById('audio-test');
-            audioEle.loop = false;
-            const stream = audioEle.captureStream();
-            audioEle.currentTime = 0;
-            audioEle.play();
-            client.start(stream);
-
-            // client.start();
-
+            client.start();
             recognizeBtn.className = 'recognizeing';
             recognizeBtn.innerHTML = '正在识别';
             recognizeBtn.disabled = true;

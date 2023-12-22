@@ -1,5 +1,4 @@
 const audioProcessorBase64 = '';
-const wasmBytesBase64 = '';
 
 type VoiceType = 'zhitian_emo' | 'zhiyan_emo' | 'zhizhe_emo' | 'zhibei_emo'
 
@@ -177,6 +176,14 @@ export class AudioClient {
                         alert('获取用户麦克风设备失败：' + err);
                     });
                 }
+
+                // const audioEle = document.getElementById('audio-test') as HTMLAudioElement;
+                // audioEle.loop = false;
+                // const stream = (audioEle as any).captureStream() as MediaStream;
+                // this.stream = stream;
+                // audioEle.currentTime = 0;
+                // audioEle.play();
+                // this.start_stream(stream);
             }
         }, err => {
             console.log('连接音频服务失败：', err);
@@ -193,16 +200,6 @@ export class AudioClient {
         const blob = new Blob([byteArray], { type: contentType });
         const blobUrl = URL.createObjectURL(blob);
         return blobUrl;
-    }
-
-    private base64_to_bytes(base64: string): ArrayBuffer {
-        const byteCharacters = atob(base64);
-        const byteNumbers: number[] = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-            byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
-        return byteArray.buffer;
     }
 
     private async start_stream(stream: MediaStream) {
@@ -222,16 +219,12 @@ export class AudioClient {
         const node = new AudioWorkletNode(context, "AudioProcessor");
         const ws = this.websocket;
         node.port.onmessage = event => {
-            const { type, data } = event.data;
-            if (ws && ws.readyState == 1 && type == 'audioData') {
+            const data = event.data;
+            if (ws && ws.readyState == 1) {
                 //console.log('发送音频数据：', data);
                 ws.send(data);
             }
-        };
-        node.port.postMessage({
-            type: 'wasmBytes',
-            data: this.base64_to_bytes(wasmBytesBase64)
-        })
+        }
         audioSource.connect(node);
         node.connect(context.destination);
     }
