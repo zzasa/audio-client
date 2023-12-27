@@ -19,7 +19,11 @@ export enum MessageType {
     /**tts请求 */
     TTS = "tts",
     /**语音识别结果 */
-    STT = "stt"
+    STT = "stt",
+    /**说话开始 */
+    TALK_START = "talk_start",
+    /**说话结束 */
+    TALK_STOP = "talk_stop"
 }
 
 /**客户端消息 */
@@ -56,6 +60,8 @@ export class AudioClient {
     private toPlayAudio: ArrayBuffer[] = []
     /**是否禁用语音播报 */
     private disableVolume = false
+    /**是否正在讲话 */
+    private isTalking = false
 
     /**
      * 收到音频数据时回调函数，如TTS返回的音频数据、大模型结果返回的音频等
@@ -72,7 +78,7 @@ export class AudioClient {
      */
     onPlayEnd?: () => void
 
-    constructor(private config: AudioConfig) { }
+    constructor(public config: AudioConfig) { }
 
     private init(): Promise<boolean> {
         let ws = this.websocket;
@@ -176,14 +182,6 @@ export class AudioClient {
                         alert('获取用户麦克风设备失败：' + err);
                     });
                 }
-
-                // const audioEle = document.getElementById('audio-test') as HTMLAudioElement;
-                // audioEle.loop = false;
-                // const stream = (audioEle as any).captureStream() as MediaStream;
-                // this.stream = stream;
-                // audioEle.currentTime = 0;
-                // audioEle.play();
-                // this.start_stream(stream);
             }
         }, err => {
             console.log('连接音频服务失败：', err);
@@ -207,6 +205,7 @@ export class AudioClient {
         if (!context) {
             return;
         }
+        
         const audioSource = context.createMediaStreamSource(stream);
         if (this.audioProcessorURL) {
             URL.revokeObjectURL(this.audioProcessorURL);
@@ -220,8 +219,7 @@ export class AudioClient {
         const ws = this.websocket;
         node.port.onmessage = event => {
             const data = event.data;
-            if (ws && ws.readyState == 1) {
-                //console.log('发送音频数据：', data);
+            if (this.isTalking && ws && ws.readyState == 1) {
                 ws.send(data);
             }
         }
@@ -247,6 +245,7 @@ export class AudioClient {
             }
             this.stream = undefined;
         }
+
         const ws = this.websocket;
         if (ws && ws.readyState == 1) {
             ws.send(JSON.stringify(ClientMessageBuilder.build(MessageType.STT, "stop")));
@@ -259,9 +258,19 @@ export class AudioClient {
     }
 
     /**
-     * 文本转语音(TTS)
+     * 设置是否讲话
      * 
-     * 发送文本消息，服务端会返回一段音频，请在onmessage回调中处理
+     * 若为false, 则客户端会提交音频
+     * @param isTalking 是否正在讲话
+     */
+    setIsTalking(isTalking: boolean) {
+        this.isTalking = isTalking;
+    }
+
+    /**
+     * 发送文本消息，支持的消息类型，参见MessageType
+     * 
+     * @param text 文本消息
      */
     send(text: string) {
         if (text.trim()) {
@@ -271,18 +280,12 @@ export class AudioClient {
             const ws = this.websocket;
             if (ws && ws.readyState == 1) {
                 console.info('开始发送消息：', text);
-                ws.send(JSON.stringify(ClientMessageBuilder.build(MessageType.TTS, {
-                    message: text,
-                    voice: this.config.voice || ''
-                })));
+                ws.send(text);
             } else {
                 this.init().then((success: boolean) => {
                     if (success && this.websocket) {
                         console.info('开始发送消息：', text);
-                        this.websocket.send(JSON.stringify(ClientMessageBuilder.build(MessageType.TTS, {
-                            message: text,
-                            voice: this.config.voice || ''
-                        })));
+                        this.websocket.send(text);
                     }
                 }, err => {
                     console.log('连接音频服务失败：', err);
@@ -318,6 +321,7 @@ export class AudioClient {
         if (this.disableVolume) { // 已禁用语音播报
             return;
         }
+       
         const context = this.audioContext;
         if (!context) {
             console.error('获取音频上下文失败：client.getAudioContext()');
@@ -342,7 +346,10 @@ export class AudioClient {
                         audioSource.connect(context.destination);
                         // 播放音频数据
                         audioSource.start(0);
-                    })
+                    }, err => {
+                        console.error('播放音频失败：', err);
+                        playCall();
+                    });
                 }
             } else {
                 if (this.onPlayEnd) {
@@ -361,9 +368,14 @@ export class AudioClient {
      * 停止播放音频
      */
     stopAudio() {
-        if (this.audioSource) {
-            this.audioSource.disconnect();
-            this.audioSource.stop();
+        try {
+            if (this.audioSource) {
+                this.audioSource.stop();
+                this.audioSource.disconnect();
+            }
+            this.toPlayAudio = []
+        } catch (error) {
+            console.error(error);
         }
     }
 }

@@ -14,7 +14,11 @@ export declare enum MessageType {
     /**tts请求 */
     TTS = "tts",
     /**语音识别结果 */
-    STT = "stt"
+    STT = "stt",
+    /**说话开始 */
+    TALK_START = "talk_start",
+    /**说话结束 */
+    TALK_STOP = "talk_stop"
 }
 /**客户端消息 */
 export interface ClientMessage<T> {
@@ -27,7 +31,7 @@ export declare class ClientMessageBuilder {
     static parse(msg: string): ClientMessage<any> | undefined;
 }
 export declare class AudioClient {
-    private config;
+    config: AudioConfig;
     private websocket?;
     private audioContext?;
     private audioSource?;
@@ -36,6 +40,8 @@ export declare class AudioClient {
     private toPlayAudio;
     /**是否禁用语音播报 */
     private disableVolume;
+    /**是否正在讲话 */
+    private isTalking;
     /**
      * 收到音频数据时回调函数，如TTS返回的音频数据、大模型结果返回的音频等
      */
@@ -75,9 +81,16 @@ export declare class AudioClient {
      */
     stop(): void;
     /**
-     * 文本转语音(TTS)
+     * 设置是否讲话
      *
-     * 发送文本消息，服务端会返回一段音频，请在onmessage回调中处理
+     * 若为false, 则客户端会提交音频
+     * @param isTalking 是否正在讲话
+     */
+    setIsTalking(isTalking: boolean): void;
+    /**
+     * 发送文本消息，支持的消息类型，参见MessageType
+     *
+     * @param text 文本消息
      */
     send(text: string): void;
     /**
