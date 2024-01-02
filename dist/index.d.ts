@@ -102,6 +102,7 @@ export declare class AudioClient {
      * @param disableVolume 是否禁用语音播报
      */
     setVolume(disableVolume: boolean): void;
+    private callPlay;
     /**
      * 播放音频数据
      * @param audioData 音频数据

@@ -266,6 +266,33 @@ export class AudioClient {
             this.stopAudio();
         }
     }
+    callPlay(context) {
+        if (this.toPlayAudio.length > 0) {
+            const buffer = this.toPlayAudio.shift();
+            if (buffer) {
+                const audioSource = context.createBufferSource();
+                this.audioSource = audioSource;
+                audioSource.onended = () => {
+                    this.callPlay(context);
+                };
+                context.decodeAudioData(buffer, (_buffer) => {
+                    audioSource.buffer = _buffer;
+                    audioSource.connect(context.destination);
+                    // 播放音频数据
+                    audioSource.start(0);
+                }, err => {
+                    console.error('播放音频失败：', err);
+                    this.callPlay(context);
+                });
+            }
+        }
+        else {
+            if (this.onPlayEnd) {
+                this.onPlayEnd();
+            }
+            this.audioSource = undefined;
+        }
+    }
     /**
      * 播放音频数据
      * @param audioData 音频数据
@@ -281,36 +308,8 @@ export class AudioClient {
             return;
         }
         this.toPlayAudio.push(audioData);
-        const playCall = () => {
-            if (this.toPlayAudio.length > 0) {
-                const buffer = this.toPlayAudio.shift();
-                if (buffer) {
-                    this.stopAudio();
-                    const audioSource = context.createBufferSource();
-                    this.audioSource = audioSource;
-                    audioSource.onended = () => {
-                        playCall();
-                    };
-                    context.decodeAudioData(buffer, (_buffer) => {
-                        audioSource.buffer = _buffer;
-                        audioSource.connect(context.destination);
-                        // 播放音频数据
-                        audioSource.start(0);
-                    }, err => {
-                        console.error('播放音频失败：', err);
-                        playCall();
-                    });
-                }
-            }
-            else {
-                if (this.onPlayEnd) {
-                    this.onPlayEnd();
-                }
-                this.audioSource = undefined;
-            }
-        };
         if (!this.audioSource) {
-            playCall();
+            this.callPlay(context);
         }
     }
     /**
