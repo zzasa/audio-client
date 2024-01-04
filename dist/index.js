@@ -45,6 +45,32 @@ export class AudioClient {
         this.disableVolume = false;
         /**是否正在讲话 */
         this.isTalking = false;
+        this.audio = new Audio();
+        /**是否准备好播放音频 */
+        this.isReady = true;
+        this.audio.autoplay = false;
+        this.audio.addEventListener('ended', () => {
+            if (this.audio.src) {
+                URL.revokeObjectURL(this.audio.src);
+            }
+            const buffer = this.toPlayAudio.shift();
+            if (buffer) {
+                console.info('开始播放下一个缓冲区');
+                let temp = new Blob([buffer], {
+                    type: 'audio/wav'
+                });
+                this.audio.src = URL.createObjectURL(temp);
+                this.audio.currentTime = 0;
+                this.audio.play();
+                this.isReady = false;
+            }
+            else { //缓冲无数据
+                this.isReady = true;
+                if (this.onPlayEnd) {
+                    this.onPlayEnd();
+                }
+            }
+        }, false);
     }
     init() {
         let ws = this.websocket;
@@ -266,33 +292,6 @@ export class AudioClient {
             this.stopAudio();
         }
     }
-    callPlay(context) {
-        if (this.toPlayAudio.length > 0) {
-            const buffer = this.toPlayAudio.shift();
-            if (buffer) {
-                const audioSource = context.createBufferSource();
-                this.audioSource = audioSource;
-                audioSource.onended = () => {
-                    this.callPlay(context);
-                };
-                context.decodeAudioData(buffer, (_buffer) => {
-                    audioSource.buffer = _buffer;
-                    audioSource.connect(context.destination);
-                    // 播放音频数据
-                    audioSource.start(0);
-                }, err => {
-                    console.error('播放音频失败：', err);
-                    this.callPlay(context);
-                });
-            }
-        }
-        else {
-            if (this.onPlayEnd) {
-                this.onPlayEnd();
-            }
-            this.audioSource = undefined;
-        }
-    }
     /**
      * 播放音频数据
      * @param audioData 音频数据
@@ -302,30 +301,32 @@ export class AudioClient {
         if (this.disableVolume) { // 已禁用语音播报
             return;
         }
-        const context = this.audioContext;
-        if (!context) {
-            console.error('获取音频上下文失败：client.getAudioContext()');
-            return;
+        if (this.isReady) {
+            this.isReady = false;
+            if (this.audio.src) {
+                URL.revokeObjectURL(this.audio.src);
+            }
+            let temp = new Blob([audioData], {
+                type: 'audio/wav'
+            });
+            this.audio.src = URL.createObjectURL(temp);
+            this.audio.currentTime = 0;
+            this.audio.play();
         }
-        this.toPlayAudio.push(audioData);
-        if (!this.audioSource) {
-            this.callPlay(context);
+        else {
+            this.toPlayAudio.push(audioData);
         }
     }
     /**
      * 停止播放音频
      */
     stopAudio() {
-        try {
-            if (this.audioSource) {
-                this.audioSource.stop();
-                this.audioSource.disconnect();
-            }
-            this.toPlayAudio = [];
+        this.audio.pause();
+        this.toPlayAudio = [];
+        if (this.audio.src) {
+            URL.revokeObjectURL(this.audio.src);
         }
-        catch (error) {
-            console.error(error);
-        }
+        this.isReady = true;
     }
 }
 

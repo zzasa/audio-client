@@ -34,7 +34,6 @@ export declare class AudioClient {
     config: AudioConfig;
     private websocket?;
     private audioContext?;
-    private audioSource?;
     private stream?;
     private audioProcessorURL?;
     private toPlayAudio;
@@ -42,6 +41,9 @@ export declare class AudioClient {
     private disableVolume;
     /**是否正在讲话 */
     private isTalking;
+    private audio;
+    /**是否准备好播放音频 */
+    private isReady;
     /**
      * 收到音频数据时回调函数，如TTS返回的音频数据、大模型结果返回的音频等
      */
@@ -102,7 +104,6 @@ export declare class AudioClient {
      * @param disableVolume 是否禁用语音播报
      */
     setVolume(disableVolume: boolean): void;
-    private callPlay;
     /**
      * 播放音频数据
      * @param audioData 音频数据
