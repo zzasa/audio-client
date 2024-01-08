@@ -2,6 +2,8 @@ type VoiceType = 'zhitian_emo' | 'zhiyan_emo' | 'zhizhe_emo' | 'zhibei_emo';
 export interface AudioConfig {
     /**websocket接口地址 */
     wsUrl: string;
+    /**是否流式，默认非流式 */
+    isStreaming?: boolean;
     /**
      * 发音人，用于TTS功能
      *
@@ -18,7 +20,9 @@ export declare enum MessageType {
     /**说话开始 */
     TALK_START = "talk_start",
     /**说话结束 */
-    TALK_STOP = "talk_stop"
+    TALK_STOP = "talk_stop",
+    /**是否流式识别模式 */
+    StreamingMode = "streaming_mode"
 }
 /**客户端消息 */
 export interface ClientMessage<T> {
@@ -57,6 +61,11 @@ export declare class AudioClient {
      */
     onPlayEnd?: () => void;
     constructor(config: AudioConfig);
+    /**
+     * 改变识别模式
+     * @param isStreaming 是否流式
+     */
+    setStreamingMode(isStreaming: boolean): void;
     private init;
     /**
      * 获取音频上下文

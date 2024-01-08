@@ -6,6 +6,9 @@ export interface AudioConfig {
     /**websocket接口地址 */
     wsUrl: string
 
+    /**是否流式，默认非流式 */
+    isStreaming?: boolean
+
     /**
      * 发音人，用于TTS功能
      * 
@@ -23,7 +26,9 @@ export enum MessageType {
     /**说话开始 */
     TALK_START = "talk_start",
     /**说话结束 */
-    TALK_STOP = "talk_stop"
+    TALK_STOP = "talk_stop",
+    /**是否流式识别模式 */
+    StreamingMode = "streaming_mode"
 }
 
 /**客户端消息 */
@@ -82,6 +87,9 @@ export class AudioClient {
     onPlayEnd?: () => void
 
     constructor(public config: AudioConfig) {
+        if (!config.isStreaming) {
+            config.isStreaming = false;
+        }
         this.audio.autoplay = false;
         this.audio.addEventListener('ended', () => {
             if (this.audio.src) {
@@ -106,6 +114,15 @@ export class AudioClient {
         }, false);
     }
 
+    /**
+     * 改变识别模式
+     * @param isStreaming 是否流式
+     */
+    setStreamingMode(isStreaming: boolean) {
+        this.config.isStreaming = isStreaming;
+        this.init();
+    }
+
     private init(): Promise<boolean> {
         let ws = this.websocket;
         if (!ws || ws.readyState == ws.CLOSED) {
@@ -117,11 +134,25 @@ export class AudioClient {
             let innerWS = this.websocket;
             if (innerWS) {
                 if (innerWS.readyState == innerWS.OPEN) {
+                    if (innerWS) {
+                        console.info('是否流式识别模式：', this.config.isStreaming);
+                        innerWS.send(JSON.stringify({
+                            type: 'streaming_mode',
+                            data: this.config.isStreaming
+                        }));
+                    }
                     resolve(true);
                     return;
                 }
                 innerWS.onopen = ev => {
                     console.info('ws已连接：', ev);
+                    if (innerWS) {
+                        console.info('是否流式识别模式：', this.config.isStreaming);
+                        innerWS.send(JSON.stringify({
+                            type: 'streaming_mode',
+                            data: this.config.isStreaming
+                        }));
+                    }
                     setInterval(() => {
                         const innerWS2 = this.websocket;
                         if (innerWS2 && innerWS2.readyState == 1) {
@@ -245,8 +276,14 @@ export class AudioClient {
         const ws = this.websocket;
         node.port.onmessage = event => {
             const data = event.data;
-            if (this.isTalking && ws && ws.readyState == 1) {
-                ws.send(data);
+            if (ws && ws.readyState == 1) {
+                if (this.config.isStreaming) {
+                    ws.send(data);
+                } else {
+                    if (this.isTalking) {
+                        ws.send(data);
+                    }
+                }
             }
         }
         audioSource.connect(node);
