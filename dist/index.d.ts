@@ -98,6 +98,8 @@ export declare class AudioClient {
      * @param isTalking 是否正在讲话
      */
     setIsTalking(isTalking: boolean): void;
+    private isInvokedInit;
+    private toTTS;
     /**
      * 发送文本消息，支持的消息类型，参见MessageType
      *

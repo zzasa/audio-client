@@ -50,6 +50,9 @@ export class AudioClient {
         this.audio = new Audio();
         /**是否准备好播放音频 */
         this.isReady = true;
+        // 是否已经调用init
+        this.isInvokedInit = false;
+        this.toTTS = [];
         if (!config.isStreaming) {
             config.isStreaming = false;
         }
@@ -299,14 +302,22 @@ export class AudioClient {
                 ws.send(text);
             }
             else {
-                this.init().then((success) => {
-                    if (success && this.websocket) {
-                        console.info('开始发送消息：', text);
-                        this.websocket.send(text);
-                    }
-                }, err => {
-                    console.log('连接音频服务失败：', err);
-                });
+                this.toTTS.push(text);
+                if (!this.isInvokedInit) {
+                    this.isInvokedInit = true;
+                    this.init().then((success) => {
+                        if (success && this.websocket) {
+                            let msg = this.toTTS.shift();
+                            while (msg) {
+                                console.info('开始发送消息：', msg);
+                                this.websocket.send(msg);
+                                msg = this.toTTS.shift();
+                            }
+                        }
+                    }, err => {
+                        console.log('连接音频服务失败：', err);
+                    });
+                }
             }
         }
     }
