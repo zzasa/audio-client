@@ -11,16 +11,11 @@
    const client = new AudioClient({ wsUrl: 'ws://ai-server:3000/', isStreaming: false });
    // 设置开始讲话，客户端开始音频发送到服务端
    client.setIsTalking(true);
-   let msg = ClientMessageBuilder.build(MessageType.TALK_START);
-   // 发送消息到音频服务，通知开始识别
-   client.send(JSON.stringify(msg));
+   
    ...
    ...
    // 设置停止讲话， 客户端会提交音频
    client.setIsTalking(false);
-   let msg = ClientMessageBuilder.build(MessageType.TALK_STOP)
-   // 发送消息到音频服务，通知停止识别
-   client.send(JSON.stringify(msg))
 
 2. 语音识别模式2：流式，如下示例：
 

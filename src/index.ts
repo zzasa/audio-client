@@ -23,10 +23,6 @@ export enum MessageType {
     TTS = "tts",
     /**语音识别结果 */
     STT = "stt",
-    /**说话开始 */
-    TALK_START = "talk_start",
-    /**说话结束 */
-    TALK_STOP = "talk_stop",
     /**是否流式识别模式 */
     StreamingMode = "streaming_mode"
 }
@@ -66,7 +62,7 @@ export class AudioClient {
     private disableVolume = false
     /**是否正在讲话 */
     private isTalking = false
-
+    private audioDataBuf: ArrayBuffer[] = []
     private audio: HTMLAudioElement = new Audio()
     /**是否准备好播放音频 */
     private isReady = true
@@ -281,7 +277,7 @@ export class AudioClient {
                     ws.send(data);
                 } else {
                     if (this.isTalking) {
-                        ws.send(data);
+                        this.audioDataBuf.push(data);
                     }
                 }
             }
@@ -294,6 +290,8 @@ export class AudioClient {
      * 停止语音识别
      */
     stop() {
+        this.isTalking = false;
+
         const context = this.audioContext;
         if (context && context.state != "closed") {
             context.close();
@@ -320,6 +318,30 @@ export class AudioClient {
         }
     }
 
+    mergeArrayBuffers(arrayBuffers: ArrayBuffer[]) {
+        // 计算新的ArrayBuffer的总长度
+        let totalLength = 0;
+        for (const buffer of arrayBuffers) {
+            totalLength += buffer.byteLength;
+        }
+
+        // 创建一个新的ArrayBuffer
+        const mergedBuffer = new ArrayBuffer(totalLength);
+
+        // 创建一个Uint8Array以便操作新的ArrayBuffer
+        const uint8Array = new Uint8Array(mergedBuffer);
+
+        let offset = 0;
+        // 逐个复制ArrayBuffer到新的ArrayBuffer中
+        for (const buffer of arrayBuffers) {
+            const sourceArray = new Uint8Array(buffer);
+            uint8Array.set(sourceArray, offset);
+            offset += sourceArray.length;
+        }
+
+        return mergedBuffer;
+    }
+
     /**
      * 设置是否讲话
      * 
@@ -328,6 +350,14 @@ export class AudioClient {
      */
     setIsTalking(isTalking: boolean) {
         this.isTalking = isTalking;
+        if (!isTalking) {
+            const ws = this.websocket;
+            if (ws && ws.readyState == 1) {
+                // 发送音频数据
+                ws.send(this.mergeArrayBuffers(this.audioDataBuf));
+                this.audioDataBuf = [];
+            }
+        }
     }
 
     // 是否已经调用init

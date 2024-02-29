@@ -42,7 +42,7 @@
 <body>
     <h2>语音交互演示</h2>
     <div class="form">
-        <div class="form-item">5秒内没说话，则停止识别</div>
+        <div class="form-item">10秒内没说话，则停止识别</div>
         <div class="form-item">
             <!-- 支持的发音人zhitian_emo，zhiyan_emo，zhizhe_emo，zhibei_emo -->
             TTS发音人：<select id="voice">
@@ -56,7 +56,8 @@
         <div class="form-item">
             <button id="recognize">开始识别</button>&nbsp;&nbsp;
             <button id="stop">停止识别</button>&nbsp;&nbsp;
-            <button id="send">发送消息(TTS)</button>
+            <button id="send">发送消息(TTS)</button>&nbsp;&nbsp;
+            <!-- <button id="set_talking">按住说话</button> -->
         </div>
         <!-- <div>
             <audio src="./zhibei_emo.wav" id="audio-test" loop="false" controls="controls"></audio>
@@ -72,20 +73,22 @@
         const recognizeBtn = document.getElementById('recognize');
         const sendBtn = document.getElementById('send');
         const stopBtn = document.getElementById('stop');
+        // const set_talking = document.getElementById('set_talking');
+
         // 发音人
         const voice = document.getElementById('voice');
 
         const resultEle = document.getElementById('result');
         let times = undefined;
         
-        const client = new AudioClient({ wsUrl: 'ws://ai-server:3000' });
+        const client = new AudioClient({ wsUrl: 'ws://ai-server:3000/audio', isStreaming: true });
         client.ontext = text => {
             if (resultEle) {
                 resultEle.innerHTML = resultEle.innerText + text;
             }
             //console.log('收到消息：', text);
 
-            // 5秒钟内没有说话，就自动关闭
+            // 10秒钟内没有说话，就自动关闭
             if (text) {
                 clearTimeout(times);
                 times = setTimeout(() => {
@@ -94,7 +97,7 @@
                     recognizeBtn.className = '';
                     recognizeBtn.innerHTML = '开始识别';
                     recognizeBtn.disabled = false;
-                }, 5000);
+                }, 10000);
             };
         };
 
@@ -110,8 +113,16 @@
             });
         };
 
+        // 开始识别
+        //const audioEle = document.getElementById('audio-test');
         recognizeBtn['onclick'] = function () {
             client.start();
+            // audioEle.loop = false
+            // const stream = audioEle.captureStream();
+            // audioEle.currentTime = 0;
+            // audioEle.play();
+            // client.start(stream);
+
             recognizeBtn.className = 'recognizeing';
             recognizeBtn.innerHTML = '正在识别';
             recognizeBtn.disabled = true;
@@ -132,6 +143,18 @@
             const text = prompt("请输入文本：");
             client.send(text);
         };
+
+        // 按住说话开始
+        // set_talking['onmousedown'] = function() {
+        //     audioEle.play();
+        //     client.setIsTalking(true);
+        // };
+
+        // 按住说话结束
+        // set_talking['onmouseup'] = function() {
+        //     audioEle.pause();
+        //     client.setIsTalking(false);
+        // };
     </script>
 </body>
 

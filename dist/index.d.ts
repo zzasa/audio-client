@@ -17,10 +17,6 @@ export declare enum MessageType {
     TTS = "tts",
     /**语音识别结果 */
     STT = "stt",
-    /**说话开始 */
-    TALK_START = "talk_start",
-    /**说话结束 */
-    TALK_STOP = "talk_stop",
     /**是否流式识别模式 */
     StreamingMode = "streaming_mode"
 }
@@ -45,6 +41,7 @@ export declare class AudioClient {
     private disableVolume;
     /**是否正在讲话 */
     private isTalking;
+    private audioDataBuf;
     private audio;
     /**是否准备好播放音频 */
     private isReady;
@@ -91,6 +88,7 @@ export declare class AudioClient {
      * 停止语音识别
      */
     stop(): void;
+    mergeArrayBuffers(arrayBuffers: ArrayBuffer[]): ArrayBuffer;
     /**
      * 设置是否讲话
      *
