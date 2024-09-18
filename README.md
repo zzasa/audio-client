@@ -1,6 +1,30 @@
 
 # 语音服务前端SDK
 
+## 使用教程
+
+### Node、Vue项目
+
+1. 在项目package.json，添加项目依赖，执行如下命令：
+
+   ```cmd
+   yarn add https://github.com/zzasa/audio-client.git
+   或
+   npm install https://github.com/zzasa/audio-client.git
+   ```
+2. 若SDK版本更新，可参考如下命令本地更新SDK
+   ```
+   yarn upgrade audio-client
+   或
+   npm update audio-client
+   ```
+
+3. 使用参考上面SDK说明，或参考SDK源码目录`dist/index.html`使用即可。
+   
+### 一般JS项目
+
+1. 下载源码，把`dist/index.js`文件放到项目中，参考`dist/index.html`使用即可。
+
 ## SDK功能说明
 
 1. 创建语音客户端：
@@ -89,26 +113,3 @@
       });
    });
    ```
-## 使用教程
-
-### Node、Vue项目
-
-1. 在项目package.json，添加项目依赖，执行如下命令：
-
-   ```cmd
-   yarn add https://github.com/zzasa/audio-client.git
-   或
-   npm install https://github.com/zzasa/audio-client.git
-   ```
-2. 若SDK版本更新，可参考如下命令本地更新SDK
-   ```
-   yarn upgrade audio-client
-   或
-   npm update audio-client
-   ```
-
-3. 使用参考上面SDK说明，或参考SDK源码目录`dist/index.html`使用即可。
-   
-### 一般JS项目
-
-1. 下载源码，把`dist/index.js`文件放到项目中，参考`dist/index.html`使用即可。
