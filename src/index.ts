@@ -1,50 +1,70 @@
 const audioProcessorBase64 = '';
 
-type VoiceType = 'zhitian_emo' | 'zhiyan_emo' | 'zhizhe_emo' | 'zhibei_emo'
-
-export interface AudioConfig {
-    /**websocket接口地址 */
-    wsUrl: string
-
-    /**是否流式，默认非流式 */
-    isStreaming?: boolean
-
-    /**
-     * 发音人，用于TTS功能
-     * 
-     * 支持的发音人：zhitian_emo，zhiyan_emo，zhizhe_emo，zhibei_emo
-     */
-    voice?: VoiceType
+/**客户端消息类型 */
+export enum ClientMessageType {
+    /**tts请求 */
+    TTS = "tts"
 }
 
-/**消息类型 */
-export enum MessageType {
-    /**tts请求 */
-    TTS = "tts",
+/**服务端消息类型 */
+export enum ServerMessageType {
     /**语音识别结果 */
-    STT = "stt",
-    /**是否流式识别模式 */
-    StreamingMode = "streaming_mode"
+    STT = "stt"
 }
 
 /**客户端消息 */
 export interface ClientMessage<T> {
-    type: MessageType,
+    type: ClientMessageType,
     data?: T
 }
 
-export class ClientMessageBuilder {
-    /**构建客户端消息 */
-    static build<T>(type: MessageType, data?: T): ClientMessage<T> {
+export interface ServerMessage<T> {
+    type: ServerMessageType,
+    data?: T
+}
+
+/**TTS请求数据 */
+export interface TtsRequestData {
+    /**要合成的文本 */
+    text: string,
+    /**发音人ID */
+    sid: number,
+    /**语速：0.5(表示0.5倍数) 1.0(表示1倍数)，2.0(表示2倍数) */
+    speed: number
+}
+
+/**消息工厂类 */
+export class MessageBuilder {
+    /**
+     * 创建TTS客户端消息
+     * @param data TTS请求数据
+     * @returns TTS客户端消息
+     */
+    static build_tts(data: TtsRequestData): ClientMessage<TtsRequestData> {
+        return MessageBuilder.build(ClientMessageType.TTS, data)
+    }
+
+    /**
+     * 创建客户端消息
+     * @param type 客户端消息类型
+     * @param data 数据
+     * @returns ClientMessage
+     */
+    static build<T>(type: ClientMessageType, data?: T): ClientMessage<T> {
         return { type, data }
     }
 
-    static parse(msg: string): ClientMessage<any> | undefined {
+    /**
+     * 解析服务端消息 
+     * @param msg 服务端json消息
+     * @returns ServerMessage | undefined
+     */
+    static parse(msg: string): ServerMessage<any> | undefined {
         const parsedMsg = JSON.parse(msg);
         if (!parsedMsg.type) {
             return undefined;
         }
-        let result: ClientMessage<any> = {
+        let result: ServerMessage<any> = {
             type: parsedMsg.type,
             data: parsedMsg.data ? parsedMsg.data : ''
         }
@@ -58,11 +78,6 @@ export class AudioClient {
     private stream?: MediaStream
     private audioProcessorURL?: string
     private toPlayAudio: ArrayBuffer[] = []
-    /**是否禁用语音播报 */
-    private disableVolume = false
-    /**是否正在讲话 */
-    private isTalking = false
-    private audioDataBuf: ArrayBuffer[] = []
     private audio: HTMLAudioElement = new Audio()
     /**是否准备好播放音频 */
     private isReady = true
@@ -82,10 +97,7 @@ export class AudioClient {
      */
     onPlayEnd?: () => void
 
-    constructor(public config: AudioConfig) {
-        if (!config.isStreaming) {
-            config.isStreaming = false;
-        }
+    constructor(private wsUrl: string) {
         this.audio.autoplay = false;
         this.audio.addEventListener('ended', () => {
             if (this.audio.src) {
@@ -108,87 +120,87 @@ export class AudioClient {
                 }
             }
         }, false);
+
+        this.initWS();
     }
 
-    /**
-     * 改变识别模式
-     * @param isStreaming 是否流式
-     */
-    setStreamingMode(isStreaming: boolean) {
-        this.config.isStreaming = isStreaming;
-        this.init();
-    }
+    private heartbeatTimer?: number;
 
-    private init(): Promise<boolean> {
-        let ws = this.websocket;
-        if (!ws || ws.readyState == ws.CLOSED) {
-            ws = new WebSocket(this.config.wsUrl);
+    private wsOnOpen(ev: Event) {
+        console.info('ws已连接：', ev);
+        if (this.heartbeatTimer) {
+            clearTimeout(this.heartbeatTimer);
         }
-        this.websocket = ws;
+        this.heartbeatTimer = setTimeout(() => {
+            const innerWS = this.websocket;
+            if (innerWS && innerWS.readyState == 1) {
+                let pingData = new Uint8Array([0x9]);
+                innerWS.send(pingData);
+            }
+        }, 20000);
+    }
 
-        return new Promise((resolve, reject) => {
-            let innerWS = this.websocket;
-            if (innerWS) {
-                if (innerWS.readyState == innerWS.OPEN) {
-                    if (innerWS) {
-                        console.info('是否流式识别模式：', this.config.isStreaming);
-                        innerWS.send(JSON.stringify({
-                            type: 'streaming_mode',
-                            data: this.config.isStreaming
-                        }));
+    private wsOnMessage(ev: MessageEvent<any>) {
+        //console.info('ws收到数据：', ev.data);
+        if (ev.data instanceof Blob) {
+            const onaudio = this.onaudio;
+            if (onaudio) {
+                ev.data.arrayBuffer().then(buf => {
+                    onaudio(buf);
+                });
+            } else {
+                console.warn("收到音频数据，但未绑定回调函数：", ev);
+            }
+        } else {
+            const msg = MessageBuilder.parse(ev.data);
+            if (msg) {
+                if (msg.type == ServerMessageType.STT) {
+                    const ontext = this.ontext;
+                    if (ontext) {
+                        ontext(msg.data);
                     }
-                    resolve(true);
-                    return;
-                }
-                innerWS.onopen = ev => {
-                    console.info('ws已连接：', ev);
-                    if (innerWS) {
-                        console.info('是否流式识别模式：', this.config.isStreaming);
-                        innerWS.send(JSON.stringify({
-                            type: 'streaming_mode',
-                            data: this.config.isStreaming
-                        }));
-                    }
-                    setInterval(() => {
-                        const innerWS2 = this.websocket;
-                        if (innerWS2 && innerWS2.readyState == 1) {
-                            let pingData = new Uint8Array([0x9]);
-                            innerWS2.send(pingData);
-                        }
-                    }, 20000);
-                    resolve(true);
-                }
-
-                innerWS.onmessage = ev => {
-                    //console.info('ws收到数据：', ev.data);
-                    if (ev.data instanceof Blob) {
-                        const onaudio = this.onaudio;
-                        if (onaudio) {
-                            ev.data.arrayBuffer().then(buf => {
-                                onaudio(buf);
-                            });
-                        } else {
-                            console.warn("收到音频数据，但未绑定回调函数：", ev);
-                        }
-                    } else {
-                        const msg = ClientMessageBuilder.parse(ev.data);
-                        if (msg) {
-                            if (msg.type == MessageType.STT) {
-                                const ontext = this.ontext;
-                                if (ontext) {
-                                    ontext(msg.data);
-                                }
-                            }
-                        }
-                    }
-
-                }
-                innerWS.onclose = ev => {
-                    reject('连接关闭');
-                    console.info('ws已关闭', ev);
                 }
             }
-        });
+        }
+    }
+
+    private wsOnClose(ev: CloseEvent) {
+        console.info('ws已关闭', ev);
+        // 服务器关闭，则不重连
+        if (ev.code != 1006) {
+            this.wsReconnect();
+        }
+    }
+
+    /**避免重复连接 */
+    private lockReconnect = false;
+    private wsTimer?: number;
+
+    private wsReconnect() {
+        if (this.lockReconnect) {
+            return;
+        }
+        this.lockReconnect = true;
+        // 没连接上会一直重连，设置延迟避免请求过多。有定时，先取消定时
+        if (this.wsTimer) {
+            clearTimeout(this.wsTimer);
+        }
+        this.wsTimer = setTimeout(() => {
+            this.initWS();
+            this.lockReconnect = false;
+        }, 2000);
+    }
+
+    private initWS() {
+        try {
+            this.websocket = new WebSocket(this.wsUrl);
+            this.websocket.onopen = this.wsOnOpen.bind(this);
+            this.websocket.onmessage = this.wsOnMessage.bind(this);
+            this.websocket.onclose = this.wsOnClose.bind(this);
+        } catch (e) {
+            console.error('连接语音服务失败：', e);
+            this.wsReconnect();
+        }
     }
 
     /**
@@ -215,30 +227,29 @@ export class AudioClient {
         if (!this.audioContext) {
             this.audioContext = new AudioContext();
         }
-        this.init().then((success: boolean) => {
-            if (success) {
-                if (customMediaStream) {
-                    this.start_stream(customMediaStream);
-                } else {
-                    navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-                        this.stream = stream;
-                        const tracks = stream.getAudioTracks();
-                        const track = tracks[0];
-                        const settings = track.getSettings();
-                        console.info(`音频轨道0：采样率：${settings.sampleRate}  通道数：${settings.channelCount}  采样大小：${settings.sampleSize}位`);
+        // 语音服务已经链接并且可以通讯
+        if (this.websocket && this.websocket.readyState == 1) {
+            if (customMediaStream) {
+                this.start_stream(customMediaStream);
+            } else {
+                navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+                    this.stream = stream;
+                    const tracks = stream.getAudioTracks();
+                    const track = tracks[0];
+                    const settings = track.getSettings();
+                    console.info(`音频轨道0：采样率：${settings.sampleRate}  通道数：${settings.channelCount}  采样大小：${settings.sampleSize}位`);
 
-                        const cap = track.getCapabilities();
-                        console.info('当前音频设备能力集：', cap);
+                    const cap = track.getCapabilities();
+                    console.info('当前音频设备能力集：', cap);
 
-                        this.start_stream(stream);
-                    }, err => {
-                        alert('获取用户麦克风设备失败：' + err);
-                    });
-                }
+                    this.start_stream(stream);
+                }, err => {
+                    alert('获取用户麦克风设备失败：' + err);
+                });
             }
-        }, err => {
-            console.log('连接音频服务失败：', err);
-        });
+        } else {
+            console.error('启用语音识别失败：连接语音服务失败');
+        }
     }
 
     private base64_to_url(base64: string, contentType: string): string {
@@ -273,13 +284,7 @@ export class AudioClient {
         node.port.onmessage = event => {
             const data = event.data;
             if (ws && ws.readyState == 1) {
-                if (this.config.isStreaming) {
-                    ws.send(data);
-                } else {
-                    if (this.isTalking) {
-                        this.audioDataBuf.push(data);
-                    }
-                }
+                ws.send(data);
             }
         }
         audioSource.connect(node);
@@ -290,8 +295,6 @@ export class AudioClient {
      * 停止语音识别
      */
     stop() {
-        this.isTalking = false;
-
         const context = this.audioContext;
         if (context && context.state != "closed") {
             context.close();
@@ -307,114 +310,28 @@ export class AudioClient {
             this.stream = undefined;
         }
 
-        const ws = this.websocket;
-        if (ws && ws.readyState == 1) {
-            ws.send(JSON.stringify(ClientMessageBuilder.build(MessageType.STT, "stop")));
-        }
-
         if (this.audioProcessorURL) {
             URL.revokeObjectURL(this.audioProcessorURL);
             this.audioProcessorURL = undefined;
         }
     }
 
-    mergeArrayBuffers(arrayBuffers: ArrayBuffer[]) {
-        // 计算新的ArrayBuffer的总长度
-        let totalLength = 0;
-        for (const buffer of arrayBuffers) {
-            totalLength += buffer.byteLength;
-        }
-
-        // 创建一个新的ArrayBuffer
-        const mergedBuffer = new ArrayBuffer(totalLength);
-
-        // 创建一个Uint8Array以便操作新的ArrayBuffer
-        const uint8Array = new Uint8Array(mergedBuffer);
-
-        let offset = 0;
-        // 逐个复制ArrayBuffer到新的ArrayBuffer中
-        for (const buffer of arrayBuffers) {
-            const sourceArray = new Uint8Array(buffer);
-            uint8Array.set(sourceArray, offset);
-            offset += sourceArray.length;
-        }
-
-        return mergedBuffer;
-    }
-
     /**
-     * 设置是否讲话
-     * 
-     * 若为false, 则客户端会提交音频
-     * @param isTalking 是否正在讲话
+     * 发送客户端消息
+     * 可通过MessageBuilder.build_tts创建TTS消息
+     * @param msg ClientMessage 客户端消息
      */
-    setIsTalking(isTalking: boolean) {
-        this.isTalking = isTalking;
-        if (!isTalking) {
-            const ws = this.websocket;
-            if (ws && ws.readyState == 1) {
-                // 发送音频数据
-                ws.send(this.mergeArrayBuffers(this.audioDataBuf));
-                this.audioDataBuf = [];
-            }
+    send<T>(msg: ClientMessage<T>) {
+        if (!this.audioContext) {
+            this.audioContext = new AudioContext();
         }
-    }
-
-    // 是否已经调用init
-    private isInvokedInit = false;
-
-    private toTTS: string[] = [];
-
-    /**
-     * 发送文本消息，支持的消息类型，参见MessageType
-     * 
-     * @param text 文本消息
-     */
-    send(text: string) {
-        if (text.trim()) {
-            if (!this.audioContext) {
-                this.audioContext = new AudioContext();
-            }
-            const ws = this.websocket;
-            if (ws && ws.readyState == 1) {
-                console.info('开始发送消息：', text);
-                ws.send(text);
-            } else {
-                this.toTTS.push(text);
-                if (!this.isInvokedInit) {
-                    this.isInvokedInit = true;
-                    this.init().then((success: boolean) => {
-                        if (success && this.websocket) {
-                            let msg = this.toTTS.shift();
-                            while (msg) {
-                                console.info('开始发送消息：', msg);
-                                this.websocket.send(msg);
-                                msg = this.toTTS.shift();
-                            }
-                        }
-                    }, err => {
-                        console.log('连接音频服务失败：', err);
-                    });
-                }
-            }
-        }
-    }
-
-    /**
-     * 设置发音人
-     */
-    setVoice(voice: VoiceType) {
-        this.config.voice = voice;
-    }
-
-    /**
-     * 设置是否禁用语音播报
-     * @param disableVolume 是否禁用语音播报 
-     */
-    setVolume(disableVolume: boolean) {
-        this.disableVolume = disableVolume;
-        if (disableVolume) {
-            this.stopAudio();
+        // 语音服务已经链接并且可以通讯
+        if (this.websocket && this.websocket.readyState == 1) {
+            const text = JSON.stringify(msg);
+            //console.info('开始发送消息：', text);
+            this.websocket.send(text);
+        } else {
+            console.error('发送消息失败：连接语音服务失败');
         }
     }
 
@@ -424,10 +341,6 @@ export class AudioClient {
      * @returns 
      */
     playAudio(audioData: ArrayBuffer) {
-        if (this.disableVolume) { // 已禁用语音播报
-            return;
-        }
-
         if (this.isReady) {
             this.isReady = false;
             if (this.audio.src) {

@@ -7,7 +7,7 @@ class AudioProcessor extends AudioWorkletProcessor {
     }
     transcode(audioData) {
         let output = this.to16kHz(audioData);
-        output = this.to16BitPCM(output);
+        //output = this.to16BitPCM(output);
         return output;
     }
     to16kHz(audioData) {

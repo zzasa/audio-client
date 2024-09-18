@@ -1,47 +1,60 @@
-type VoiceType = 'zhitian_emo' | 'zhiyan_emo' | 'zhizhe_emo' | 'zhibei_emo';
-export interface AudioConfig {
-    /**websocket接口地址 */
-    wsUrl: string;
-    /**是否流式，默认非流式 */
-    isStreaming?: boolean;
-    /**
-     * 发音人，用于TTS功能
-     *
-     * 支持的发音人：zhitian_emo，zhiyan_emo，zhizhe_emo，zhibei_emo
-     */
-    voice?: VoiceType;
-}
-/**消息类型 */
-export declare enum MessageType {
+/**客户端消息类型 */
+export declare enum ClientMessageType {
     /**tts请求 */
-    TTS = "tts",
+    TTS = "tts"
+}
+/**服务端消息类型 */
+export declare enum ServerMessageType {
     /**语音识别结果 */
-    STT = "stt",
-    /**是否流式识别模式 */
-    StreamingMode = "streaming_mode"
+    STT = "stt"
 }
 /**客户端消息 */
 export interface ClientMessage<T> {
-    type: MessageType;
+    type: ClientMessageType;
     data?: T;
 }
-export declare class ClientMessageBuilder {
-    /**构建客户端消息 */
-    static build<T>(type: MessageType, data?: T): ClientMessage<T>;
-    static parse(msg: string): ClientMessage<any> | undefined;
+export interface ServerMessage<T> {
+    type: ServerMessageType;
+    data?: T;
+}
+/**TTS请求数据 */
+export interface TtsRequestData {
+    /**要合成的文本 */
+    text: string;
+    /**发音人ID */
+    sid: number;
+    /**语速：0.5(表示0.5倍数) 1.0(表示1倍数)，2.0(表示2倍数) */
+    speed: number;
+}
+/**消息工厂类 */
+export declare class MessageBuilder {
+    /**
+     * 创建TTS客户端消息
+     * @param data TTS请求数据
+     * @returns TTS客户端消息
+     */
+    static build_tts(data: TtsRequestData): ClientMessage<TtsRequestData>;
+    /**
+     * 创建客户端消息
+     * @param type 客户端消息类型
+     * @param data 数据
+     * @returns ClientMessage
+     */
+    static build<T>(type: ClientMessageType, data?: T): ClientMessage<T>;
+    /**
+     * 解析服务端消息
+     * @param msg 服务端json消息
+     * @returns ServerMessage | undefined
+     */
+    static parse(msg: string): ServerMessage<any> | undefined;
 }
 export declare class AudioClient {
-    config: AudioConfig;
+    private wsUrl;
     private websocket?;
     private audioContext?;
     private stream?;
     private audioProcessorURL?;
     private toPlayAudio;
-    /**是否禁用语音播报 */
-    private disableVolume;
-    /**是否正在讲话 */
-    private isTalking;
-    private audioDataBuf;
     private audio;
     /**是否准备好播放音频 */
     private isReady;
@@ -57,13 +70,16 @@ export declare class AudioClient {
      * 音频播放完成时回调
      */
     onPlayEnd?: () => void;
-    constructor(config: AudioConfig);
-    /**
-     * 改变识别模式
-     * @param isStreaming 是否流式
-     */
-    setStreamingMode(isStreaming: boolean): void;
-    private init;
+    constructor(wsUrl: string);
+    private heartbeatTimer?;
+    private wsOnOpen;
+    private wsOnMessage;
+    private wsOnClose;
+    /**避免重复连接 */
+    private lockReconnect;
+    private wsTimer?;
+    private wsReconnect;
+    private initWS;
     /**
      * 获取音频上下文
      * @returns 内部音频上下文
@@ -88,31 +104,12 @@ export declare class AudioClient {
      * 停止语音识别
      */
     stop(): void;
-    mergeArrayBuffers(arrayBuffers: ArrayBuffer[]): ArrayBuffer;
     /**
-     * 设置是否讲话
-     *
-     * 若为false, 则客户端会提交音频
-     * @param isTalking 是否正在讲话
+     * 发送客户端消息
+     * 可通过MessageBuilder.build_tts创建TTS消息
+     * @param msg ClientMessage 客户端消息
      */
-    setIsTalking(isTalking: boolean): void;
-    private isInvokedInit;
-    private toTTS;
-    /**
-     * 发送文本消息，支持的消息类型，参见MessageType
-     *
-     * @param text 文本消息
-     */
-    send(text: string): void;
-    /**
-     * 设置发音人
-     */
-    setVoice(voice: VoiceType): void;
-    /**
-     * 设置是否禁用语音播报
-     * @param disableVolume 是否禁用语音播报
-     */
-    setVolume(disableVolume: boolean): void;
+    send<T>(msg: ClientMessage<T>): void;
     /**
      * 播放音频数据
      * @param audioData 音频数据
@@ -124,4 +121,3 @@ export declare class AudioClient {
      */
     stopAudio(): void;
 }
-export {};

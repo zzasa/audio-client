@@ -3,87 +3,92 @@
 
 ## SDK功能说明
 
-1. 语音识别模式1：非流式(默认)，如下示例：
+1. 创建语音客户端：
 
    ```ts
-   import { AudioClient, MessageType, ClientMessageBuilder } from "audio-client";
-   // 非流式
-   const client = new AudioClient({ wsUrl: 'ws://ai-server:3000/', isStreaming: false });
-   // 设置开始讲话，客户端开始音频发送到服务端
-   client.setIsTalking(true);
-   
-   ...
-   ...
-   // 设置停止讲话， 客户端会提交音频
-   client.setIsTalking(false);
-
-2. 语音识别模式2：流式，如下示例：
-
-   ```ts
-   import { AudioClient } from "audio-client";
-   // 流式，该模式下不需要调用setIsTalking方法、也不需要通知音频服务，
-   // 但该模式会消耗不必要的流量，请客户端自行做好没说话时，停止识别，参见使用教程中ontext回调示例
-   const client = new AudioClient({ wsUrl: 'ws://ai-server:3000/', isStreaming: true });
-
-   // 或者使用setStreamingMode改变模式
-   client.setStreamingMode(true);
+   import { AudioClient, MessageBuilder } from 'audio-client';
+   // 地址改成实际的
+   const client = new AudioClient('ws://localhost:3000/ws');
    ```
 
-3. 获取语音识别结果，如下示例：
+2. 启动语音识别：
 
    ```ts
-   import { AudioClient } from "audio-client";
-   const client = new AudioClient({ wsUrl: 'ws://ai-server:3000/'});
+   // 启动语音识别
+   client.start();
+   ```
+
+3. 获取语音识别结果：
+   
+   ```ts
+   // 语音识别结果回调
    client.ontext = text => {
-    console.log('语音识别结果：', text);
+      console.log('语音识别结果：', text);
    };
    ```
 
-4. TTS发音人切换：zhitian_emo，zhiyan_emo，zhizhe_emo，zhibei_emo，如下示例：
-
+4. 停止语音识别：
    ```ts
-   import { AudioClient } from "audio-client";
-   // 通过创建客户端时指定
-   const client = new AudioClient({ wsUrl: 'ws://ai-server:3000/', isStreaming: false, voice: 'zhitian_emo' });
-   // 或调用setVoice方法指定
-   client.setVoice('zhitian_emo');
+   //停止语音识别
+   client.stop();
    ```
 
-5. 播放TTS返回的音频、语音播报控制，如下示例：
+5. 获取语音合成(TTS)结果：
 
    ```ts
-   import { AudioClient } from "audio-client";
-   const client = new AudioClient({ wsUrl: 'ws://ai-server:3000/'});
    // onaudio收到音频数据时，audioData: ArrayBuffer
    client.onaudio = audioData => {
+    // 播放音频
     client.playAudio(audioData);
    };
    
    client.onPlayEnd = () => {
     // 音频播放完成，在这里做处理
    };
-
-   // 是否禁用语音播报
-   const disableVolume = true;
-   client.setVolume(disableVolume);
-
-   // 停止播报
-   client.stopAudio();
    ```
 
-6. 开始、停止语音识别，如下示例：
+6. 发送语音合成消息：
+   ```ts
+   let msg = MessageBuilder.build_tts({
+      text: '要合成的文本',
+      sid: 0, // 发音人ID，范围参见http://localhost:3000/api/speakers接口
+      speed: 1.0 // 发音速率，如0.5表示0.5倍速、2.0表示2倍速
+   });
+   // 发送TTS消息
+   client.send(msg);
+   ```
+
+7. 播放音频：
 
    ```ts
-   import { AudioClient } from "audio-client";
-   const client = new AudioClient({ wsUrl: 'ws://ai-server:3000/'});
-   // 开始语音识别
-   client.start();
-   ...
-   ...
-   // 停止语音识别
-   client.stop();
+   // onaudio收到音频数据时，audioData: ArrayBuffer
+   client.onaudio = audioData => {
+    // 播放音频
+    client.playAudio(audioData);
+   };
    ```
 
+8. 停止播放音频：
+
+   ```ts
+   // 停止播放音频
+   client.stopAudio();
+   ```
+9. 获取TTS发音人数量API，任意http客户端发送get请求到：/api/speakers
+   如下示例仅供参考：
+   ```ts
+   // 地址改成实际的
+   fetch('http://localhost:3000/api/speakers').then(resp => {
+      resp.json().then(result => {
+         console.log(result);
+         if (result.code == 0) {
+            // 发音人数量
+            const num = result.data;
+            console.log('发音人数量：', num);
+         }
+      });
+   });
+   ```
 ## 使用教程
 
 ### Node、Vue项目
@@ -95,65 +100,15 @@
    或
    npm install https://github.com/zzasa/audio-client.git
    ```
-
-2. 在项目代码中使用，参考如下示例：
-
-   ```ts
-    import { AudioClient } from "audio-client";
-
-    // wsUrl为音频服务IP，请填写实际的IP和端口，如：ws://192.168.100.10:3000/
-    const client = new AudioClient({ wsUrl: 'ws://ai-server:3000/', voice: 'zhitian_emo', isStreaming: false });
-    let times = undefined;
-    // 收到文本消息时回调
-    client.ontext = text => {
-        console.log('收到消息：', text);
-        // 5秒钟内没有说话，就自动关闭
-        if (text) {
-            clearTimeout(times);
-            times = setTimeout(() => {
-                // 停止客户端
-                client.stop();
-                resultEle.innerHTML = '';
-                recognizeBtn.className = '';
-                recognizeBtn.innerHTML = '开始识别';
-                recognizeBtn.disabled = false;
-            }, 5000);
-        };
-    };
-
-    // 收到语音消息时回调
-    client.onaudio = audioData => {
-        console.info('收到音频数据：', audioData);
-        const audioContext = new AudioContext();
-        const audioSource = audioContext.createBufferSource();
-        audioContext.decodeAudioData(audioData, (buffer) => {
-            audioSource.buffer = buffer;
-            audioSource.connect(audioContext.destination);
-            // 播放音频数据
-            audioSource.start();
-        });
-    };
-
-    // 启动语音识别
-    recognizeBtn['onclick'] = function () {
-        // 调用客户端的启动API
-        client.start();
-        recognizeBtn.className = 'recognizeing';
-        recognizeBtn.innerHTML = '正在识别';
-        recognizeBtn.disabled = true;
-    };
-
-    // 发送TTS消息
-    sendBtn['onclick'] = function () {
-        // 设置发音人
-        client.setVoice(voice.value);
-
-        const text = prompt("请输入文本：");
-        // 调用发送TTS
-        client.send(text);
-    };
+2. 若SDK版本更新，可参考如下命令本地更新SDK
+   ```
+   yarn upgrade audio-client
+   或
+   npm update audio-client
    ```
 
+3. 使用参考上面SDK说明，或参考SDK源码目录`dist/index.html`使用即可。
+   
 ### 一般JS项目
 
 1. 下载源码，把`dist/index.js`文件放到项目中，参考`dist/index.html`使用即可。

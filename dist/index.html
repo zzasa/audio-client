@@ -19,7 +19,7 @@
         .form-item {
             padding: 15px auto;
             display: flex;
-            flex-direction: row;
+            flex-direction: column;
             justify-content: center;
         }
 
@@ -36,92 +36,70 @@
             font-size: 20px;
             font-weight: bold;
         }
+
+        #speakerId {
+            width: 200px;
+        }
     </style>
 </head>
 
 <body>
     <h2>语音交互演示</h2>
     <div class="form">
-        <div class="form-item">10秒内没说话，则停止识别</div>
         <div class="form-item">
-            <!-- 支持的发音人zhitian_emo，zhiyan_emo，zhizhe_emo，zhibei_emo -->
-            TTS发音人：<select id="voice">
-                <option value="">--选择发音人--</option>
-                <option value="zhitian_emo">zhitian_emo</option>
-                <option value="zhiyan_emo">zhiyan_emo</option>
-                <option value="zhizhe_emo">zhizhe_emo</option>
-                <option value="zhibei_emo">zhibei_emo</option>
-            </select>
+            <div>TTS发音人ID：<input type="number" id="speakerId" placeholder="请填写数字：0到803(包含)" value="0" /></div>
+            <div>TTS发音速率：<input type="number" id="speed" placeholder="请填写数字" value="1.0" /><br /><span
+                    style="color: red;">如：0.5表示0.5倍速，1.0表示1倍速，2.0表示2倍数</span></div>
+            <div>合成文本：<input type="text" id="text" value="" /></div>
+
         </div>
-        <div class="form-item">
+        <div>
             <button id="recognize">开始识别</button>&nbsp;&nbsp;
             <button id="stop">停止识别</button>&nbsp;&nbsp;
             <button id="send">发送消息(TTS)</button>&nbsp;&nbsp;
-            <!-- <button id="set_talking">按住说话</button> -->
         </div>
-        <!-- <div>
-            <audio src="./zhibei_emo.wav" id="audio-test" loop="false" controls="controls"></audio>
-        </div> -->
         <div class="form-item" id="result">
 
         </div>
     </div>
 
     <script type="module">
-        import { AudioClient } from './index.js';
+        import { AudioClient, MessageBuilder } from './index.js';
 
         const recognizeBtn = document.getElementById('recognize');
         const sendBtn = document.getElementById('send');
         const stopBtn = document.getElementById('stop');
-        // const set_talking = document.getElementById('set_talking');
-
-        // 发音人
-        const voice = document.getElementById('voice');
-
         const resultEle = document.getElementById('result');
         let times = undefined;
-        
-        const client = new AudioClient({ wsUrl: 'ws://ai-server:3000/audio', isStreaming: true });
+
+        const client = new AudioClient('ws://localhost:3000/ws');
         client.ontext = text => {
             if (resultEle) {
-                resultEle.innerHTML = resultEle.innerText + text;
+                resultEle.innerHTML = text;
             }
             //console.log('收到消息：', text);
 
             // 10秒钟内没有说话，就自动关闭
-            if (text) {
-                clearTimeout(times);
-                times = setTimeout(() => {
-                    client.stop();
-                    resultEle.innerHTML = '';
-                    recognizeBtn.className = '';
-                    recognizeBtn.innerHTML = '开始识别';
-                    recognizeBtn.disabled = false;
-                }, 10000);
-            };
+            // if (text) {
+            //     clearTimeout(times);
+            //     times = setTimeout(() => {
+            //         client.stop();
+            //         resultEle.innerHTML = '';
+            //         recognizeBtn.className = '';
+            //         recognizeBtn.innerHTML = '开始识别';
+            //         recognizeBtn.disabled = false;
+            //     }, 10000);
+            // };
         };
 
         client.onaudio = audioData => {
-            //console.info('收到音频数据：', audioData);
-            const audioContext = new AudioContext();
-            const audioSource = audioContext.createBufferSource();
-            audioContext.decodeAudioData(audioData, (buffer) => {
-                audioSource.buffer = buffer;
-                audioSource.connect(audioContext.destination);
-                // 播放音频数据
-                audioSource.start();
-            });
+            console.info('收到音频数据：', audioData);
+            client.playAudio(audioData);
         };
 
         // 开始识别
-        //const audioEle = document.getElementById('audio-test');
         recognizeBtn['onclick'] = function () {
             client.start();
-            // audioEle.loop = false
-            // const stream = audioEle.captureStream();
-            // audioEle.currentTime = 0;
-            // audioEle.play();
-            // client.start(stream);
 
             recognizeBtn.className = 'recognizeing';
             recognizeBtn.innerHTML = '正在识别';
@@ -137,24 +115,43 @@
         };
 
         sendBtn['onclick'] = function () {
-            // 设置发音人
-            client.setVoice(voice.value);
+            // 发音人ID
+            const speakerId = document.getElementById('speakerId');
+            // 发音速率
+            const speed = document.getElementById('speed');
+            // 要合成的文本
+            const text = document.getElementById('text');
+            if (!text.value.trim()) {
+                alert('要合成的文本不能为空');
+                return;
+            }
+            // 获取发音人数量
+            fetch('http://localhost:3000/api/speakers').then(resp => {
+                resp.json().then(result => {
+                    console.log(result);
+                    if (result.code == 0) {
+                        // 发音人数量
+                        const num = result.data;
+                        const sid = parseInt(speakerId.value);
+                        if (sid >= 0 && sid <= (num - 1)) {
+                            let msg = MessageBuilder.build_tts({
+                                text: text.value,
+                                sid: parseInt(speakerId.value),
+                                speed: parseFloat(speed.value)
+                            });
+                            client.send(msg);
+                        } else {
+                            alert(`发音人ID超出范围：[0, ${num - 1}]`);
+                        }
+                    }
 
-            const text = prompt("请输入文本：");
-            client.send(text);
+                });
+
+            }).catch(e => {
+                console.error(e);
+                alert('获取发音人数量失败！');
+            });
         };
-
-        // 按住说话开始
-        // set_talking['onmousedown'] = function() {
-        //     audioEle.play();
-        //     client.setIsTalking(true);
-        // };
-
-        // 按住说话结束
-        // set_talking['onmouseup'] = function() {
-        //     audioEle.pause();
-        //     client.setIsTalking(false);
-        // };
     </script>
 </body>
 
