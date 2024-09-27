@@ -7,7 +7,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-const audioProcessorBase64 = 'Y2xhc3MgQXVkaW9Qcm9jZXNzb3IgZXh0ZW5kcyBBdWRpb1dvcmtsZXRQcm9jZXNzb3Igew0KICAgIHByb2Nlc3MoaW5wdXRzLCBvdXRwdXRzKSB7DQogICAgICAgIGNvbnN0IGlucHV0Q2hhbm5lbHMgPSBpbnB1dHNbMF07DQogICAgICAgIGNvbnN0IGlucHV0U2FtcGxlcyA9IGlucHV0Q2hhbm5lbHNbMF07DQogICAgICAgIHRoaXMucG9ydC5wb3N0TWVzc2FnZSh0aGlzLnRyYW5zY29kZShpbnB1dFNhbXBsZXMpLmJ1ZmZlcik7DQogICAgICAgIHJldHVybiB0cnVlOw0KICAgIH0NCiAgICB0cmFuc2NvZGUoYXVkaW9EYXRhKSB7DQogICAgICAgIGxldCBvdXRwdXQgPSB0aGlzLnRvMTZrSHooYXVkaW9EYXRhKTsNCiAgICAgICAgLy9vdXRwdXQgPSB0aGlzLnRvMTZCaXRQQ00ob3V0cHV0KTsNCiAgICAgICAgcmV0dXJuIG91dHB1dDsNCiAgICB9DQogICAgdG8xNmtIeihhdWRpb0RhdGEpIHsNCiAgICAgICAgdmFyIGRhdGEgPSBuZXcgRmxvYXQzMkFycmF5KGF1ZGlvRGF0YSk7DQogICAgICAgIHZhciBmaXRDb3VudCA9IE1hdGgucm91bmQoZGF0YS5sZW5ndGggKiAoMTYwMDAgLyBzYW1wbGVSYXRlKSk7DQogICAgICAgIHZhciBuZXdEYXRhID0gbmV3IEZsb2F0MzJBcnJheShmaXRDb3VudCk7DQogICAgICAgIHZhciBzcHJpbmdGYWN0b3IgPSAoZGF0YS5sZW5ndGggLSAxKSAvIChmaXRDb3VudCAtIDEpOw0KICAgICAgICBuZXdEYXRhWzBdID0gZGF0YVswXTsNCiAgICAgICAgZm9yIChsZXQgaSA9IDE7IGkgPCBmaXRDb3VudCAtIDE7IGkrKykgew0KICAgICAgICAgICAgdmFyIHRtcCA9IGkgKiBzcHJpbmdGYWN0b3I7DQogICAgICAgICAgICB2YXIgYmVmb3JlID0gTWF0aC5mbG9vcih0bXApLnRvRml4ZWQoKTsNCiAgICAgICAgICAgIHZhciBhZnRlciA9IE1hdGguY2VpbCh0bXApLnRvRml4ZWQoKTsNCiAgICAgICAgICAgIHZhciBhdFBvaW50ID0gdG1wIC0gYmVmb3JlOw0KICAgICAgICAgICAgbmV3RGF0YVtpXSA9IGRhdGFbYmVmb3JlXSArIChkYXRhW2FmdGVyXSAtIGRhdGFbYmVmb3JlXSkgKiBhdFBvaW50Ow0KICAgICAgICB9DQogICAgICAgIG5ld0RhdGFbZml0Q291bnQgLSAxXSA9IGRhdGFbZGF0YS5sZW5ndGggLSAxXTsNCiAgICAgICAgcmV0dXJuIG5ld0RhdGE7DQogICAgfQ0KDQogICAgdG8xNkJpdFBDTShpbnB1dCkgew0KICAgICAgICB2YXIgZGF0YUxlbmd0aCA9IGlucHV0Lmxlbmd0aCAqICgxNiAvIDgpOw0KICAgICAgICB2YXIgZGF0YUJ1ZmZlciA9IG5ldyBBcnJheUJ1ZmZlcihkYXRhTGVuZ3RoKTsNCiAgICAgICAgdmFyIGRhdGFWaWV3ID0gbmV3IERhdGFWaWV3KGRhdGFCdWZmZXIpOw0KICAgICAgICB2YXIgb2Zmc2V0ID0gMDsNCiAgICAgICAgZm9yICh2YXIgaSA9IDA7IGkgPCBpbnB1dC5sZW5ndGg7IGkrKywgb2Zmc2V0ICs9IDIpIHsNCiAgICAgICAgICAgIHZhciBzID0gTWF0aC5tYXgoLTEsIE1hdGgubWluKDEsIGlucHV0W2ldKSk7DQogICAgICAgICAgICBkYXRhVmlldy5zZXRJbnQxNihvZmZzZXQsIHMgPCAwID8gcyAqIDB4ODAwMCA6IHMgKiAweDdmZmYsIHRydWUpOw0KICAgICAgICB9DQogICAgICAgIHJldHVybiBkYXRhVmlldzsNCiAgICB9DQp9DQoNCnJlZ2lzdGVyUHJvY2Vzc29yKCJBdWRpb1Byb2Nlc3NvciIsIEF1ZGlvUHJvY2Vzc29yKTs=';
+const audioProcessorBase64 = 'DQpmdW5jdGlvbiB0cmFuc2NvZGUoYXVkaW9EYXRhLCBfc2FtcGxlUmF0ZSkgew0KICAgIGxldCBvdXRwdXQgPSB0bzE2a0h6KGF1ZGlvRGF0YSwgX3NhbXBsZVJhdGUpOw0KICAgIC8vb3V0cHV0ID0gdG8xNkJpdFBDTShvdXRwdXQpOw0KICAgIHJldHVybiBvdXRwdXQ7DQp9DQpmdW5jdGlvbiB0bzE2a0h6KGF1ZGlvRGF0YSwgX3NhbXBsZVJhdGUpIHsNCiAgICB2YXIgZGF0YSA9IG5ldyBGbG9hdDMyQXJyYXkoYXVkaW9EYXRhKTsNCiAgICB2YXIgZml0Q291bnQgPSBNYXRoLnJvdW5kKGRhdGEubGVuZ3RoICogKDE2MDAwIC8gX3NhbXBsZVJhdGUpKTsNCiAgICB2YXIgbmV3RGF0YSA9IG5ldyBGbG9hdDMyQXJyYXkoZml0Q291bnQpOw0KICAgIHZhciBzcHJpbmdGYWN0b3IgPSAoZGF0YS5sZW5ndGggLSAxKSAvIChmaXRDb3VudCAtIDEpOw0KICAgIG5ld0RhdGFbMF0gPSBkYXRhWzBdOw0KICAgIGZvciAobGV0IGkgPSAxOyBpIDwgZml0Q291bnQgLSAxOyBpKyspIHsNCiAgICAgICAgdmFyIHRtcCA9IGkgKiBzcHJpbmdGYWN0b3I7DQogICAgICAgIHZhciBiZWZvcmUgPSBNYXRoLmZsb29yKHRtcCkudG9GaXhlZCgpOw0KICAgICAgICB2YXIgYWZ0ZXIgPSBNYXRoLmNlaWwodG1wKS50b0ZpeGVkKCk7DQogICAgICAgIHZhciBhdFBvaW50ID0gdG1wIC0gYmVmb3JlOw0KICAgICAgICBuZXdEYXRhW2ldID0gZGF0YVtiZWZvcmVdICsgKGRhdGFbYWZ0ZXJdIC0gZGF0YVtiZWZvcmVdKSAqIGF0UG9pbnQ7DQogICAgfQ0KICAgIG5ld0RhdGFbZml0Q291bnQgLSAxXSA9IGRhdGFbZGF0YS5sZW5ndGggLSAxXTsNCiAgICByZXR1cm4gbmV3RGF0YTsNCn0NCg0KZnVuY3Rpb24gdG8xNkJpdFBDTShpbnB1dCkgew0KICAgIHZhciBkYXRhTGVuZ3RoID0gaW5wdXQubGVuZ3RoICogKDE2IC8gOCk7DQogICAgdmFyIGRhdGFCdWZmZXIgPSBuZXcgQXJyYXlCdWZmZXIoZGF0YUxlbmd0aCk7DQogICAgdmFyIGRhdGFWaWV3ID0gbmV3IERhdGFWaWV3KGRhdGFCdWZmZXIpOw0KICAgIHZhciBvZmZzZXQgPSAwOw0KICAgIGZvciAodmFyIGkgPSAwOyBpIDwgaW5wdXQubGVuZ3RoOyBpKyssIG9mZnNldCArPSAyKSB7DQogICAgICAgIHZhciBzID0gTWF0aC5tYXgoLTEsIE1hdGgubWluKDEsIGlucHV0W2ldKSk7DQogICAgICAgIGRhdGFWaWV3LnNldEludDE2KG9mZnNldCwgcyA8IDAgPyBzICogMHg4MDAwIDogcyAqIDB4N2ZmZiwgdHJ1ZSk7DQogICAgfQ0KICAgIHJldHVybiBkYXRhVmlldzsNCn0NCg0KaWYgKHR5cGVvZiBBdWRpb1dvcmtsZXRQcm9jZXNzb3IgPT0gJ3VuZGVmaW5lZCcpIHsNCiAgICB0aGlzLm9ubWVzc2FnZSA9IGV2ZW50ID0+IHsNCiAgICAgICAgY29uc3QgeyBkYXRhLCBzYW1wbGVSYXRlIH0gPSBldmVudC5kYXRhOw0KICAgICAgICBjb25zdCBvdXRwdXQgPSB0cmFuc2NvZGUoZGF0YSwgc2FtcGxlUmF0ZSk7DQogICAgICAgIHRoaXMucG9zdE1lc3NhZ2Uob3V0cHV0KTsNCiAgICB9Ow0KfSBlbHNlIHsNCiAgICBjbGFzcyBBdWRpb1Byb2Nlc3NvciBleHRlbmRzIEF1ZGlvV29ya2xldFByb2Nlc3NvciB7DQogICAgICAgIHByb2Nlc3MoaW5wdXRzLCBvdXRwdXRzKSB7DQogICAgICAgICAgICBjb25zdCBpbnB1dENoYW5uZWxzID0gaW5wdXRzWzBdOw0KICAgICAgICAgICAgY29uc3QgaW5wdXRTYW1wbGVzID0gaW5wdXRDaGFubmVsc1swXTsNCiAgICAgICAgICAgIHRoaXMucG9ydC5wb3N0TWVzc2FnZSh0cmFuc2NvZGUoaW5wdXRTYW1wbGVzLCBzYW1wbGVSYXRlKS5idWZmZXIpOw0KICAgICAgICAgICAgcmV0dXJuIHRydWU7DQogICAgICAgIH0NCiAgICB9DQogICAgcmVnaXN0ZXJQcm9jZXNzb3IoIkF1ZGlvUHJvY2Vzc29yIiwgQXVkaW9Qcm9jZXNzb3IpOw0KfQ0K';
 /**客户端消息类型 */
 export var ClientMessageType;
 (function (ClientMessageType) {
@@ -179,8 +179,9 @@ export class AudioClient {
      * 具体解决方案参见：https://juejin.cn/post/7241399184595058744
      *
      * @param customMediaStream 自定义语音输入流(可选)，若不传，则使用内置语音采集
+     * @param sampleRate 采样率，若不传，则默认48000
      */
-    start(customMediaStream) {
+    start(customMediaStream, sampleRate) {
         return __awaiter(this, void 0, void 0, function* () {
             if (!this.audioContext) {
                 this.audioContext = new AudioContext();
@@ -188,7 +189,7 @@ export class AudioClient {
             // 语音服务已经链接并且可以通讯
             if (this.websocket && this.websocket.readyState == 1) {
                 if (customMediaStream) {
-                    this.start_stream(customMediaStream);
+                    this.start_stream(customMediaStream, sampleRate);
                 }
                 else {
                     navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
@@ -199,7 +200,7 @@ export class AudioClient {
                         console.info(`音频轨道0：采样率：${settings.sampleRate}  通道数：${settings.channelCount}  采样大小：${settings.sampleSize}位`);
                         const cap = track.getCapabilities();
                         console.info('当前音频设备能力集：', cap);
-                        this.start_stream(stream);
+                        this.start_stream(stream, settings.sampleRate);
                     }, err => {
                         alert('获取用户麦克风设备失败：' + err);
                     });
@@ -221,30 +222,58 @@ export class AudioClient {
         const blobUrl = URL.createObjectURL(blob);
         return blobUrl;
     }
-    start_stream(stream) {
+    start_stream(stream, sampleRate) {
         return __awaiter(this, void 0, void 0, function* () {
-            const context = this.audioContext;
+            let context = this.audioContext;
             if (!context) {
                 return;
             }
-            const audioSource = context.createMediaStreamSource(stream);
+            // 获取worker脚本URL
             if (this.audioProcessorURL) {
                 URL.revokeObjectURL(this.audioProcessorURL);
                 this.audioProcessorURL = undefined;
             }
             let url = this.base64_to_url(audioProcessorBase64, 'text/javascript');
-            yield context.audioWorklet.addModule(url);
             this.audioProcessorURL = url;
-            const node = new AudioWorkletNode(context, "AudioProcessor");
+            // ws客户端
             const ws = this.websocket;
-            node.port.onmessage = event => {
-                const data = event.data;
-                if (ws && ws.readyState == 1) {
-                    ws.send(data);
-                }
-            };
-            audioSource.connect(node);
-            node.connect(context.destination);
+            // 音频源
+            const audioSource = context.createMediaStreamSource(stream);
+            if (typeof AudioWorkletNode == 'function') {
+                console.info('使用AudioWorkletNode采集音频');
+                yield context.audioWorklet.addModule(url);
+                const node = new AudioWorkletNode(context, "AudioProcessor");
+                node.port.onmessage = event => {
+                    const data = event.data;
+                    if (ws && ws.readyState == 1) {
+                        ws.send(data);
+                    }
+                };
+                audioSource.connect(node);
+                node.connect(context.destination);
+            }
+            else {
+                console.info('使用ScriptProcessorNode采集音频');
+                //创建worker
+                const webWorker = new Worker(url);
+                webWorker.onmessage = event => {
+                    const data = event.data;
+                    if (ws && ws.readyState == 1) {
+                        ws.send(data);
+                    }
+                };
+                // 创建音频处理节点
+                const node = context.createScriptProcessor(0, 1, 1);
+                node.onaudioprocess = event => {
+                    const data = event.inputBuffer.getChannelData(0);
+                    webWorker.postMessage({
+                        data,
+                        sampleRate: sampleRate ? sampleRate : 48000
+                    });
+                };
+                audioSource.connect(node);
+                node.connect(context.destination);
+            }
         });
     }
     /**

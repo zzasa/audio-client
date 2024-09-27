@@ -222,15 +222,16 @@ export class AudioClient {
      * 具体解决方案参见：https://juejin.cn/post/7241399184595058744
      * 
      * @param customMediaStream 自定义语音输入流(可选)，若不传，则使用内置语音采集
+     * @param sampleRate 采样率，若不传，则默认48000
      */
-    async start(customMediaStream?: MediaStream) {
+    async start(customMediaStream?: MediaStream, sampleRate?: number) {
         if (!this.audioContext) {
             this.audioContext = new AudioContext();
         }
         // 语音服务已经链接并且可以通讯
         if (this.websocket && this.websocket.readyState == 1) {
             if (customMediaStream) {
-                this.start_stream(customMediaStream);
+                this.start_stream(customMediaStream, sampleRate);
             } else {
                 navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
                     this.stream = stream;
@@ -242,7 +243,7 @@ export class AudioClient {
                     const cap = track.getCapabilities();
                     console.info('当前音频设备能力集：', cap);
 
-                    this.start_stream(stream);
+                    this.start_stream(stream, settings.sampleRate);
                 }, err => {
                     alert('获取用户麦克风设备失败：' + err);
                 });
@@ -264,31 +265,60 @@ export class AudioClient {
         return blobUrl;
     }
 
-    private async start_stream(stream: MediaStream) {
-        const context = this.audioContext;
+    private async start_stream(stream: MediaStream, sampleRate?: number) {
+        let context = this.audioContext;
         if (!context) {
             return;
         }
-
-        const audioSource = context.createMediaStreamSource(stream);
+        // 获取worker脚本URL
         if (this.audioProcessorURL) {
             URL.revokeObjectURL(this.audioProcessorURL);
             this.audioProcessorURL = undefined;
         }
         let url = this.base64_to_url(audioProcessorBase64, 'text/javascript');
-        await context.audioWorklet.addModule(url);
         this.audioProcessorURL = url;
 
-        const node = new AudioWorkletNode(context, "AudioProcessor");
+        // ws客户端
         const ws = this.websocket;
-        node.port.onmessage = event => {
-            const data = event.data;
-            if (ws && ws.readyState == 1) {
-                ws.send(data);
+
+        // 音频源
+        const audioSource = context.createMediaStreamSource(stream);
+        if (typeof AudioWorkletNode == 'function') {
+            console.info('使用AudioWorkletNode采集音频');
+            await context.audioWorklet.addModule(url);
+
+            const node = new AudioWorkletNode(context, "AudioProcessor");
+            node.port.onmessage = event => {
+                const data = event.data;
+                if (ws && ws.readyState == 1) {
+                    ws.send(data);
+                }
             }
+            audioSource.connect(node);
+            node.connect(context.destination);
+        } else {
+            console.info('使用ScriptProcessorNode采集音频');
+            //创建worker
+            const webWorker = new Worker(url);
+            webWorker.onmessage = event => {
+                const data = event.data;
+                if (ws && ws.readyState == 1) {
+                    ws.send(data);
+                }
+            }
+            // 创建音频处理节点
+            const node = context.createScriptProcessor(0, 1, 1);
+            node.onaudioprocess = event => {
+                const data = event.inputBuffer.getChannelData(0);
+                webWorker.postMessage({
+                    data,
+                    sampleRate: sampleRate ? sampleRate : 48000
+                });
+            };
+
+            audioSource.connect(node);
+            node.connect(context.destination);
         }
-        audioSource.connect(node);
-        node.connect(context.destination);
     }
 
     /**
